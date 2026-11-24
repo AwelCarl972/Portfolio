@@ -39,6 +39,12 @@ templates.env.globals.update(risk_level=risk_level, status_label=status_label,
                              v=str(int(max(f.stat().st_mtime for f in _STATIC.iterdir()))))
 
 
+@app.get("/cv", response_class=HTMLResponse)
+def cv(request: Request):
+    """Version publique du CV : sans téléphone, avec l'adresse du domaine (le site est lu par des robots)."""
+    return templates.TemplateResponse(request, "cv.html", {})
+
+
 @app.get("/sante")
 def sante():
     """Sonde du conteneur : ne charge rien, répond dès que le serveur écoute."""
