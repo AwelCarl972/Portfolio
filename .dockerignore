@@ -1,0 +1,9 @@
+.venv/
+data/
+candidature/
+.claude/
+.git/
+.pytest_cache/
+**/__pycache__/
+rust/datakit/target/
+tests/

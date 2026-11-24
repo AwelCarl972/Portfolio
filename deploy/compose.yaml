@@ -1,0 +1,54 @@
+# ---------------------------------------------------------------------------
+# Production du portfolio (axelclaude.fr), sur le serveur partagé avec LTE et MGE.
+#
+#   internet ──► caddy de LTE (80/443) ──► portfolio-web (FastAPI, 8000)
+#
+# Pas de Caddy ici : un serveur n'a qu'un port 443, et celui de LTE le tient.
+# Il porte le bloc de ce domaine (deploy/caddy/sites/axelclaude.caddy dans le
+# dépôt LTE) et joint ce conteneur par le réseau Docker `frontal`, créé par la
+# pile LTE.
+#
+# Le service s'appelle `portfolio-web` et non `web` : sur `frontal`, un nom de
+# service est un nom DNS, et un second `web` enverrait des visiteurs de LTE ici.
+#
+# Déposé tel quel dans /srv/portfolio ; les valeurs viennent du .env voisin,
+# jamais versionné (gabarit : .env.example).
+# ---------------------------------------------------------------------------
+
+services:
+  portfolio-web:
+    image: portfolio/web:${PORTFOLIO_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    logging:
+      # Le disque est commun aux trois sites : des journaux sans rotation finiraient par le remplir
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          # Mesuré : ~110 Mo une fois les pages chargées. Le plafond protège LTE et MGE :
+          # si le portfolio dérape, c'est lui que Docker redémarre, pas eux.
+          memory: ${PORTFOLIO_MEM:-384m}
+          cpus: "0.5"
+    volumes:
+      # Open data, imports des projets, base DuckDB et clé de pseudonymisation
+      - portfolio_data:/app/data
+    networks:
+      - frontal
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/sante')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+networks:
+  # Créé par la pile LTE : elle doit tourner avant celle-ci.
+  frontal:
+    external: true
+
+volumes:
+  portfolio_data:

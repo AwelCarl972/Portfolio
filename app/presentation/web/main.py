@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Annotated
 
@@ -16,6 +17,7 @@ from app.domain.rules import risk_level, status_label
 from app.domain.territory import REGIONS
 
 from .deps import get_analyze, get_overview, get_projets, get_store, get_territory
+from .quota import depuis_env
 
 app = FastAPI(title="ParcInsulaire")
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
@@ -34,15 +36,32 @@ def db_locked(request: Request, exc: duckdb.IOException):
 templates.env.globals.update(risk_level=risk_level, status_label=status_label)
 
 
+@app.get("/sante")
+def sante():
+    """Sonde du conteneur : ne charge rien, répond dès que le serveur écoute."""
+    return {"ok": True}
+
+
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request, overview: Annotated[FleetOverview, Depends(get_overview)]):
     risks, alerts = overview()
     return templates.TemplateResponse(request, "index.html", {"risks": risks, "alerts": alerts})
 
 
+_QUOTA = depuis_env()
+_TEXTE_MAX = 3000  # un compte rendu d'intervention tient en quelques lignes ; au-delà, c'est la facture qui grossit
+
+
 @app.post("/analyze", response_class=HTMLResponse)
 def analyze(request: Request, uc: Annotated[AnalyzeReport, Depends(get_analyze)],
             asset_id: Annotated[int | None, Form()] = None, text: Annotated[str, Form()] = ""):
+    if len(text) > _TEXTE_MAX:
+        return HTMLResponse(f'<p class="text-red-600">Texte trop long : {_TEXTE_MAX} caractères au plus.</p>')
+    # Le quota ne vaut que pour le vrai LLM : le simulateur ne coûte rien
+    if os.getenv("ANTHROPIC_API_KEY"):
+        refus = _QUOTA.refus(request.client.host if request.client else "inconnu")
+        if refus:
+            return HTMLResponse(f'<p class="text-amber-600">{refus}</p>', status_code=429)
     try:
         result = uc(asset_id, text)
     except ValueError as e:
