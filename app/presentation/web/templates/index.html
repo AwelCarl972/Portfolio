@@ -15,28 +15,28 @@
   </script>
 </head>
 <body class="bg-slate-50 text-slate-800">
-<header class="bg-slate-900 text-white px-6 py-4">
+<header class="bg-slate-900 text-white px-4 sm:px-6 py-4">
   <h1 class="text-xl font-bold">ParcInsulaire <span class="text-sky-300 font-normal">· maintenance prédictive à La Réunion</span></h1>
   <p class="text-sm text-slate-300">Données anonymisées localement par un moteur <span class="text-orange-300">Rust</span> avant tout appel IA · SQL (DuckDB) · FastAPI + HTMX</p>
   <nav class="mt-2 text-sm"><span class="font-semibold">Parc & IA</span> · <a class="underline text-sky-300" href="/observatoire">Observatoire Réunion (open data)</a> · <a class="underline text-sky-300" href="/projets">Projets (Le Wagon, trading)</a></nav>
 </header>
-<main class="max-w-6xl mx-auto p-6 space-y-8">
+<main class="max-w-6xl mx-auto px-3 py-4 sm:p-6 space-y-8">
 
   <section>
     <h2 class="font-semibold text-lg mb-2">Risque du parc <span class="text-sm font-normal text-slate-500">(dérive de pannes, coût, immobilisation)</span></h2>
     <div class="overflow-x-auto bg-white rounded shadow">
     <table class="w-full text-sm">
       <thead class="bg-slate-100 text-left"><tr>
-        <th class="p-2">Actif</th><th>Client</th><th>Site</th><th>Km</th><th>Pannes 12m</th><th>Coût 12m</th><th>Dérive</th><th>Risque</th><th></th></tr></thead>
+        <th class="p-2">Actif</th><th class="hidden md:table-cell">Client</th><th class="hidden sm:table-cell">Site</th><th class="hidden lg:table-cell">Km</th><th class="hidden sm:table-cell">Pannes 12m</th><th class="hidden md:table-cell">Coût 12m</th><th class="hidden lg:table-cell">Dérive</th><th>Risque</th><th></th></tr></thead>
       <tbody>
       {% for r in risks %}
         {% set lvl = risk_level(r.risk_score) %}
         <tr class="border-t">
           <td class="p-2">{{ r.label }}<div class="text-xs text-slate-500">{{ r.plate }}</div></td>
-          <td>{{ r.client }}</td><td>{{ r.commune }}</td>
-          <td>{{ "{:,}".format(r.km_current).replace(",", " ") }}</td>
-          <td>{{ r.failures_12m }}</td><td>{{ "%.0f"|format(r.cost_12m) }} €</td>
-          <td>{{ r.drift_ratio if r.drift_ratio is not none else "–" }}</td>
+          <td class="hidden md:table-cell">{{ r.client }}</td><td class="hidden sm:table-cell">{{ r.commune }}</td>
+          <td class="hidden lg:table-cell">{{ "{:,}".format(r.km_current).replace(",", " ") }}</td>
+          <td class="hidden sm:table-cell">{{ r.failures_12m }}</td><td class="hidden md:table-cell">{{ "%.0f"|format(r.cost_12m) }} €</td>
+          <td class="hidden lg:table-cell">{{ r.drift_ratio if r.drift_ratio is not none else "–" }}</td>
           <td><span class="px-2 py-0.5 rounded text-white text-xs
               {{ 'bg-red-600' if lvl == 'CRITIQUE' else 'bg-orange-500' if lvl == 'ÉLEVÉ' else 'bg-yellow-500' if lvl == 'À SURVEILLER' else 'bg-green-600' }}">
               {{ r.risk_score }} · {{ lvl }}</span></td>
@@ -52,15 +52,15 @@
     <h2 class="font-semibold text-lg mb-2">Approvisionnement : quand commander ? <span class="text-sm font-normal text-slate-500">(mer 30-45 j vs air 4-7 j)</span></h2>
     <div class="overflow-x-auto bg-white rounded shadow">
     <table class="w-full text-sm">
-      <thead class="bg-slate-100 text-left"><tr><th class="p-2">Actif</th><th>Pièce</th><th>Échéance</th><th>Stock</th><th>Limite commande (mer)</th><th>Statut</th></tr></thead>
+      <thead class="bg-slate-100 text-left"><tr><th class="p-2">Actif</th><th>Pièce</th><th class="hidden md:table-cell">Échéance</th><th class="hidden sm:table-cell">Stock</th><th class="hidden sm:table-cell">Limite commande (mer)</th><th>Statut</th></tr></thead>
       <tbody>
       {% for a in alerts %}
         {% set s = status_label(a.status) %}
         <tr class="border-t">
           <td class="p-2">{{ a.plate }}</td><td>{{ a.part_ref }} — {{ a.part_label }}</td>
-          <td>{{ a.due_date }} <span class="text-xs text-slate-500">({{ a.due_km }} km)</span></td>
-          <td>{{ a.stock_qty }}</td>
-          <td>{{ a.days_left_to_order }} j</td>
+          <td class="hidden md:table-cell">{{ a.due_date }} <span class="text-xs text-slate-500">({{ a.due_km }} km)</span></td>
+          <td class="hidden sm:table-cell">{{ a.stock_qty }}</td>
+          <td class="hidden sm:table-cell">{{ a.days_left_to_order }} j</td>
           <td class="{{ {'ok':'text-green-700','warn':'text-yellow-700','bad':'text-orange-600 font-semibold','crit':'text-red-600 font-bold'}[s[1]] }}">{{ s[0] }}</td>
         </tr>
       {% endfor %}

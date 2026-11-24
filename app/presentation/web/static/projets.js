@@ -17,7 +17,7 @@
     textStyle: { fontFamily: "system-ui, -apple-system, Segoe UI, sans-serif", color: css("--text-secondary") },
     grid: { left: 8, right: 24, top: 40, bottom: 8, containLabel: true },
     tooltip: { backgroundColor: css("--surface-1"), borderColor: css("--grid"), textStyle: { color: css("--text-primary"), fontSize: 12 }, confine: true },
-    legend: { top: 0, left: 0, icon: "roundRect", itemWidth: 12, itemHeight: 8, textStyle: { color: css("--text-secondary") } },
+    legend: { top: 0, left: 0, type: innerWidth < 640 ? "scroll" : "plain", icon: "roundRect", itemWidth: 12, itemHeight: 8, textStyle: { color: css("--text-secondary") } },
   });
   const axe = (extra = {}) => ({
     axisLine: { lineStyle: { color: css("--axis") } }, axisTick: { show: false },
@@ -77,10 +77,13 @@
   }
 
   /* ---------------- Bornes : la carte animée ---------------- */
-  const VUES = { metropole: [[46.6, 2.4], 6], reunion: [[-21.13, 55.53], 10], antilles: [[15.4, -61.3], 8] };
+  // Cadres plutôt que centre + zoom : le zoom qui montre la France sur un écran large la coupe sur un téléphone
+  const VUES = { metropole: [[41.4, -5.0], [51.1, 9.5]], reunion: [[-21.39, 55.21], [-20.87, 55.84]], antilles: [[14.38, -61.25], [16.52, -60.8]] };
   let carte, calque, sites = [], marqueurs = [], rangMax = 0, rang = 0, minuteur = null, fond = null;
 
   const rayon = (n) => 1.6 + Math.min(4.4, Math.sqrt(n) / 1.6);  // 30 000 sites : de petits ronds, sinon la France sature
+  // Vue d'ensemble (petit zoom, téléphone) : ronds réduits, sinon le parc n'est plus qu'une tache
+  const echelle = () => Math.max(0.45, Math.min(1, (carte.getZoom() - 3) / 4));
   const libelleRang = (r) => `${MOIS[r % 12]} ${2010 + Math.floor(r / 12)}`;
   const cumul = Object.fromEntries(P.bornes.cumul.map(c => [c.mois, c.cumul]));
   const cumulAu = (r) => {  // parc cumulé au dernier mois connu ≤ r
@@ -126,7 +129,7 @@
   async function initCarte() {
     if (carte) return;
     carte = L.map("carte", { preferCanvas: true, zoomSnap: 0.5, scrollWheelZoom: false });  // la molette fait défiler la page, pas la carte
-    carte.setView(...VUES.metropole);
+    carte.fitBounds(VUES.metropole);
     fondDeCarte();
     matchMedia("(prefers-color-scheme: dark)").addEventListener("change", fondDeCarte);
     calque = L.layerGroup().addTo(carte);
@@ -139,6 +142,9 @@
     // Fin de frise = dernier mois de mise en service, pas dernière ouverture de site : un site existant gagne encore des points
     const [fa, fm] = P.bornes.cumul.at(-1).mois.split("-").map(Number);
     rangMax = 12 * (fa - 2010) + fm - 1;
+    const ajuster = () => { const k = echelle(); marqueurs.forEach((m, i) => m.setRadius(rayon(sites[i].points) * k)); };
+    carte.on("zoomend", ajuster);
+    ajuster();
     const curseur = document.getElementById("mois");
     curseur.min = 48; curseur.max = rangMax;  // la frise commence en 2014 : avant, 36 points en tout
     curseur.oninput = () => afficher(Number(curseur.value));
@@ -147,7 +153,7 @@
       + `<span class="muted">· rond plus gros = plus de points sur le site</span>`;
     document.querySelectorAll("#territoires .chip").forEach(chip => chip.onclick = () => {
       document.querySelectorAll("#territoires .chip").forEach(c => c.setAttribute("aria-pressed", c === chip));
-      carte.setView(...VUES[chip.dataset.vue]);
+      carte.fitBounds(VUES[chip.dataset.vue]);
     });
     afficher(rangMax);
   }
@@ -171,7 +177,7 @@
       xAxis: axe({ type: "value", name: "Drawdown maximal (%)", nameLocation: "middle", nameGap: 26 }),
       yAxis: axe({ type: "value", name: "Gain (€)", axisLabel: { color: css("--muted"), fontSize: 11, formatter: v => fmt(v / 1000) + " k" } }),
       series: VOLUMES.map(([nom, f], i) => ({
-        name: nom, type: "scatter", symbolSize: 4, itemStyle: { color: c[i], opacity: 0.55 },
+        name: nom, type: "scatter", symbolSize: 4, progressive: 0, itemStyle: { color: c[i], opacity: 0.55 },
         data: pts.filter(p => f(p.trades)).map(p => [p.dd, p.profit, p.trades, p.passe]),
         markLine: i === 0 ? { silent: true, symbol: "none", lineStyle: { color: css("--axis"), type: "dashed" }, label: { show: false }, data: [{ yAxis: 0 }] } : undefined,
       })),
@@ -222,7 +228,7 @@
     document.querySelectorAll('[role="tab"]').forEach(b => b.setAttribute("aria-selected", b.dataset.tab === nom));
     document.querySelectorAll('[role="tabpanel"]').forEach(p => (p.hidden = p.id !== `tab-${nom}`));
     if (push) history.replaceState(null, "", `#${nom}`);
-    if (nom === "bornes") { annuel(); initCarte().then(() => carte.invalidateSize()); }
+    if (nom === "bornes") { annuel(); initCarte().then(() => { carte.invalidateSize(); if (!carte._cadree) { carte.fitBounds(VUES.metropole); carte._cadree = true; } }); }
     if (nom === "trading") initTrading();
     if (nom === "code") document.querySelectorAll("#tab-code pre code:not(.hljs)").forEach(c => {
       hljs.highlightElement(c);

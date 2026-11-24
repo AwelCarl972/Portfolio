@@ -33,7 +33,10 @@ def db_locked(request: Request, exc: duckdb.IOException):
                         f"</p><pre>{exc}</pre>", status_code=503)
 
 
-templates.env.globals.update(risk_level=risk_level, status_label=status_label)
+# Version des fichiers statiques dans leur URL : sans elle, un navigateur garde l'ancien JS après une mise en ligne
+_STATIC = Path(__file__).parent / "static"
+templates.env.globals.update(risk_level=risk_level, status_label=status_label,
+                             v=str(int(max(f.stat().st_mtime for f in _STATIC.iterdir()))))
 
 
 @app.get("/sante")

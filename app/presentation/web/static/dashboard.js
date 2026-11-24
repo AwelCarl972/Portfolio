@@ -23,7 +23,7 @@
       grid: { left: 8, right: 24, top: 36, bottom: 8, containLabel: true },
       tooltip: { backgroundColor: t.surface, borderColor: t.grid, textStyle: { color: t.ink, fontSize: 12 },
                  confine: true },
-      legend: { top: 0, left: 0, icon: "roundRect", itemWidth: 12, itemHeight: 8, textStyle: { color: t.ink2 } },
+      legend: { top: 0, left: 0, type: innerWidth < 640 ? "scroll" : "plain", icon: "roundRect", itemWidth: 12, itemHeight: 8, textStyle: { color: t.ink2 } },
     };
   }
   const axis = (t, extra = {}) => ({
@@ -279,7 +279,7 @@
       series: [
         { type: "scatter", data: pts.map(p => [p.x, p.y]), symbolSize: 10, color: t.s[0],
           itemStyle: { borderColor: t.surface, borderWidth: 2 },
-          label: { show: true, position: "right", fontSize: 10, color: t.ink2,
+          label: { show: innerWidth >= 640, position: "right", fontSize: 10, color: t.ink2,
                    formatter: (p) => named.has(pts[p.dataIndex].nom) ? pts[p.dataIndex].nom : "" },
           labelLayout: { hideOverlap: true },
           emphasis: { scale: 1.4 } },

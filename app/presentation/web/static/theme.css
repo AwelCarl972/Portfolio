@@ -67,3 +67,12 @@ details.sql:target, details.sql.flash { outline: 2px solid var(--s1); }
 .rust-badge { border-color: #ce422b; color: #ce422b; }
 .rust-step { border-color: #ce422b88; }
 code.inline { font-size: 12px; background: var(--code-bg); border-radius: 4px; padding: 0 4px; }
+
+/* Téléphone : les boutons d'un bloc passent au-dessus du titre au lieu de lui réserver 130 px à droite */
+@media (max-width: 640px) {
+  .card { display: flex; flex-direction: column; padding: 12px; }
+  .card h3 { padding-right: 0; }
+  .card-actions { position: static; order: -1; align-self: flex-end; margin-bottom: 4px; }
+  .tile-value { font-size: 22px; }
+  .chart-tall { height: 340px; }
+}

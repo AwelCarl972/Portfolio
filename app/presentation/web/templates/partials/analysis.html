@@ -2,7 +2,7 @@
   <p class="text-sm"><b>{{ a.used|length }}</b> entités sensibles masquées localement avant l'appel IA
     <span class="ml-2 inline-block text-xs px-2 py-0.5 rounded {{ 'bg-orange-100 text-orange-800' if a.engine == 'Rust' else 'bg-slate-100 text-slate-700' }}">
       moteur : {{ 'Rust (binaire natif datakit)' if a.engine == 'Rust' else 'Python' }}</span></p>
-  <div class="flex gap-1 text-sm">
+  <div class="flex flex-wrap gap-1 text-sm">
     <button data-btn="local" onclick="tab(this,'local')" class="px-3 py-1 rounded border bg-slate-800 text-white">✅ Affichage local (réidentifié)</button>
     <button data-btn="ai" onclick="tab(this,'ai')" class="px-3 py-1 rounded border">🔒 Ce que l'IA reçoit</button>
     <button data-btn="resp" onclick="tab(this,'resp')" class="px-3 py-1 rounded border">🤖 Réponse brute de l'IA</button>
