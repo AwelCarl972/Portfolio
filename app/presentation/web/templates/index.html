@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ParcInsulaire — maintenance prédictive</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script>
+    function tab(btn, name) {
+      const root = btn.closest('[data-tabs]');
+      root.querySelectorAll('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== name);
+      root.querySelectorAll('[data-btn]').forEach(b => b.classList.toggle('bg-slate-800', b.dataset.btn === name));
+      root.querySelectorAll('[data-btn]').forEach(b => b.classList.toggle('text-white', b.dataset.btn === name));
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800">
+<header class="bg-slate-900 text-white px-6 py-4">
+  <h1 class="text-xl font-bold">ParcInsulaire <span class="text-sky-300 font-normal">· maintenance prédictive à La Réunion</span></h1>
+  <p class="text-sm text-slate-300">Données anonymisées localement par un moteur <span class="text-orange-300">Rust</span> avant tout appel IA · SQL (DuckDB) · FastAPI + HTMX</p>
+  <nav class="mt-2 text-sm"><span class="font-semibold">Parc & IA</span> · <a class="underline text-sky-300" href="/observatoire">Observatoire Réunion (open data)</a> · <a class="underline text-sky-300" href="/projets">Projets (Le Wagon, trading)</a></nav>
+</header>
+<main class="max-w-6xl mx-auto p-6 space-y-8">
+
+  <section>
+    <h2 class="font-semibold text-lg mb-2">Risque du parc <span class="text-sm font-normal text-slate-500">(dérive de pannes, coût, immobilisation)</span></h2>
+    <div class="overflow-x-auto bg-white rounded shadow">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-100 text-left"><tr>
+        <th class="p-2">Actif</th><th>Client</th><th>Site</th><th>Km</th><th>Pannes 12m</th><th>Coût 12m</th><th>Dérive</th><th>Risque</th><th></th></tr></thead>
+      <tbody>
+      {% for r in risks %}
+        {% set lvl = risk_level(r.risk_score) %}
+        <tr class="border-t">
+          <td class="p-2">{{ r.label }}<div class="text-xs text-slate-500">{{ r.plate }}</div></td>
+          <td>{{ r.client }}</td><td>{{ r.commune }}</td>
+          <td>{{ "{:,}".format(r.km_current).replace(",", " ") }}</td>
+          <td>{{ r.failures_12m }}</td><td>{{ "%.0f"|format(r.cost_12m) }} €</td>
+          <td>{{ r.drift_ratio if r.drift_ratio is not none else "–" }}</td>
+          <td><span class="px-2 py-0.5 rounded text-white text-xs
+              {{ 'bg-red-600' if lvl == 'CRITIQUE' else 'bg-orange-500' if lvl == 'ÉLEVÉ' else 'bg-yellow-500' if lvl == 'À SURVEILLER' else 'bg-green-600' }}">
+              {{ r.risk_score }} · {{ lvl }}</span></td>
+          <td><button class="text-sky-700 underline" hx-post="/analyze" hx-vals='{"asset_id": {{ r.id }}}'
+                      hx-target="#result" hx-indicator="#spin">Analyser</button></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2 class="font-semibold text-lg mb-2">Approvisionnement : quand commander ? <span class="text-sm font-normal text-slate-500">(mer 30-45 j vs air 4-7 j)</span></h2>
+    <div class="overflow-x-auto bg-white rounded shadow">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-100 text-left"><tr><th class="p-2">Actif</th><th>Pièce</th><th>Échéance</th><th>Stock</th><th>Limite commande (mer)</th><th>Statut</th></tr></thead>
+      <tbody>
+      {% for a in alerts %}
+        {% set s = status_label(a.status) %}
+        <tr class="border-t">
+          <td class="p-2">{{ a.plate }}</td><td>{{ a.part_ref }} — {{ a.part_label }}</td>
+          <td>{{ a.due_date }} <span class="text-xs text-slate-500">({{ a.due_km }} km)</span></td>
+          <td>{{ a.stock_qty }}</td>
+          <td>{{ a.days_left_to_order }} j</td>
+          <td class="{{ {'ok':'text-green-700','warn':'text-yellow-700','bad':'text-orange-600 font-semibold','crit':'text-red-600 font-bold'}[s[1]] }}">{{ s[0] }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="bg-white rounded shadow p-4">
+    <h2 class="font-semibold text-lg mb-2">Analyse IA d'un compte-rendu <span class="text-sm font-normal text-slate-500">(texte libre ou bouton « Analyser » ci-dessus)</span></h2>
+    <form hx-post="/analyze" hx-target="#result" hx-indicator="#spin" class="space-y-2">
+      <textarea name="text" rows="4" class="w-full border rounded p-2 text-sm"
+        placeholder="Ex. : OT-4999 — Transports Payet Express. Camion FG-482-RT immobilisé au 12 chemin des Lataniers, Le Port. Fuite injecteur à 85 000 km. Contact : 0262 42 18 07."></textarea>
+      <button class="bg-slate-800 text-white px-4 py-1 rounded">Analyser</button>
+      <span id="spin" class="htmx-indicator text-sm text-slate-500">Analyse…</span>
+    </form>
+    <div id="result" class="mt-4"></div>
+  </section>
+
+  <section>
+    <button class="text-sm underline text-slate-600" hx-get="/privacy-map" hx-target="#map">Voir la table de correspondance locale (jamais envoyée à l'IA)</button>
+    <div id="map" class="mt-2"></div>
+  </section>
+</main>
+</body>
+</html>

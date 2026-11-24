@@ -1,0 +1,22 @@
+{% set k = panel.kpis %}
+{% macro delta(v, unit='%') -%}
+  {%- if v is not none -%}<span class="text-[color:var(--text-secondary)]">{{ '▲' if v > 0 else '▼' if v < 0 else '=' }} {{ '%+.1f'|format(v) }}{{ unit }}</span>{%- endif -%}
+{%- endmacro %}
+<div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+  <div class="tile"><div class="tile-label">Population (2016)</div>
+    <div class="tile-value">{{ "{:,}".format(k["pop"]).replace(",", " ") }}</div>
+    <div class="tile-sub">{{ delta(k.pop_evol) }} depuis 2006 · {{ k.nb_communes }} communes</div></div>
+  <div class="tile"><div class="tile-label">Prix médian au m² ({{ k.prix_annee }})</div>
+    <div class="tile-value">{{ "{:,.0f}".format(k.prix_m2).replace(",", " ") }} €</div>
+    <div class="tile-sub">{{ delta(k.prix_evol) }} sur 1 an</div></div>
+  <div class="tile"><div class="tile-label">Accidents corporels ({{ k.accidents_annee }})</div>
+    <div class="tile-value">{{ k.accidents }}</div>
+    <div class="tile-sub">{{ delta(k.accidents_evol) }} sur 1 an · {{ k.accidents_mortels }} mortels</div></div>
+  <div class="tile"><div class="tile-label">Demandeurs d'emploi ({{ k.chomeurs_mois }})</div>
+    <div class="tile-value">{{ "{:,}".format(k.chomeurs).replace(",", " ") if k.chomeurs else "–" }}</div>
+    <div class="tile-sub">{{ delta(k.chomeurs_evol) }} sur 12 mois</div></div>
+  <div class="tile"><div class="tile-label">Logements autorisés ({{ k.logements_annee }})</div>
+    <div class="tile-value">{{ "{:,}".format(k.logements).replace(",", " ") }}</div>
+    <div class="tile-sub">{{ delta(k.logements_evol) }} sur 1 an</div></div>
+</div>
+<script type="application/json" id="panel-data">{{ panel|tojson }}</script>

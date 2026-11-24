@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Observatoire Réunion — open data</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+  <link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github.min.css">
+  <link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
+  <link rel="stylesheet" href="/static/theme.css">
+</head>
+<body class="viz-root">
+{% macro card(id, title, sub, sql, scope=None, height="chart") -%}
+  <div class="card" data-chart="{{ id }}" data-sql="{{ sql }}">
+    <h3><span class="card-title">{{ title }}</span>{% if scope %}<span class="badge" title="Non concerné par le filtre de micro-région">{{ scope }}</span>{% endif %}</h3>
+    <p class="sub">{{ sub }}</p>{{ caller() if caller else "" }}<div class="chart {{ height }}"></div>
+  </div>
+{%- endmacro %}
+
+<header class="bg-slate-900 text-white px-6 py-4">
+  <h1 class="text-xl font-bold">Observatoire Réunion <span class="text-sky-300 font-normal">· immobilier, emploi, sécurité routière, climat</span></h1>
+  <p class="text-sm text-slate-300">8 jeux open data réels (data.regionreunion.com, Météo-France) · SQL DuckDB · <span class="text-orange-300">Rust</span> (profilage qualité) · Python · ECharts + HTMX, zéro licence BI</p>
+  <nav class="mt-2 text-sm"><a class="underline text-sky-300" href="/">← Parc & IA</a> · <span class="font-semibold">Observatoire</span> · <a class="underline text-sky-300" href="/projets">Projets (Le Wagon, trading)</a></nav>
+</header>
+
+<main class="max-w-7xl mx-auto p-6 space-y-5">
+{% if missing %}
+  <div class="card"><h3>Données open data absentes</h3>
+    <p class="sub">Téléchargez-les puis relancez le serveur :</p>
+    <pre class="text-sm">python -m app.infrastructure.opendata.fetch</pre></div>
+{% else %}
+  <section>
+    <div class="flex flex-wrap items-center gap-2 mb-3">
+      <span class="text-sm muted mr-1">Micro-région :</span>
+      {% for r in ["ALL"] + regions %}
+      <button class="chip" aria-pressed="{{ 'true' if r == 'ALL' else 'false' }}"
+              hx-get="/observatoire/panel?region={{ r }}" hx-target="#panel" hx-indicator="#panel"
+              onclick="document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c === this))">
+        {{ "Toute l'île" if r == "ALL" else r }}</button>
+      {% endfor %}
+      <span class="text-xs muted ml-2">S'applique aux indicateurs ci-dessous et aux graphiques sans badge</span>
+    </div>
+    <div id="panel">{% include "partials/territory_panel.html" %}</div>
+  </section>
+
+  <nav class="tabs" role="tablist">
+    {% for key, label in [("immobilier", "Immobilier"), ("securite", "Sécurité routière"), ("emploi", "Emploi & logement"),
+                          ("climat", "Climat"), ("correlations", "Corrélations"), ("donnees", "Données & SQL")] %}
+    <button class="tab" role="tab" data-tab="{{ key }}" aria-selected="{{ 'true' if loop.first else 'false' }}">{{ label }}</button>
+    {% endfor %}
+  </nav>
+
+  <!-- ============ Immobilier ============ -->
+  <section role="tabpanel" id="tab-immobilier" class="grid lg:grid-cols-2 gap-4">
+    {% call card("prix_trend", "Prix médian au m² par type de bien", "DVF 2014-2025 · médiane annuelle en €/m² ; Q1-Q3 et volume au survol", "prix_trend") %}{% endcall %}
+    {% call card("prix_box", "Dispersion des prix au m² par commune (2023-2025)", "Boîte = Q1-Q3, trait = médiane, moustaches = P10-P90 · communes ≥ 30 ventes", "prix_box") %}{% endcall %}
+    <div class="lg:col-span-2">
+    {% call card("prix_evol", "Hausse du prix médian au m², 2016-18 → 2023-25", "Variation en % par commune, classée · communes ≥ 30 ventes", "prix_evol", None, "chart-tall") %}{% endcall %}
+    </div>
+  </section>
+
+  <!-- ============ Sécurité routière ============ -->
+  <section role="tabpanel" id="tab-securite" class="grid lg:grid-cols-2 gap-4" hidden>
+    {% call card("acc_heatmap", "Quand ont lieu les accidents ?", "Accidents corporels 2012-2024 par jour × heure (BAAC)", "acc_heatmap", None, "chart-tall") %}{% endcall %}
+    {% call card("acc_gravite", "Accidents par année et gravité maximale", "Gravité du plus grave usager de l'accident", "acc_gravite", None, "chart-tall") %}{% endcall %}
+    <div class="lg:col-span-2">
+    {% call card("pluie", "La pluie augmente-t-elle les accidents ?", "Accidents/jour dans le Nord (Saint-Denis, Sainte-Marie, Sainte-Suzanne) selon la pluie du jour à Gillot, 2012-2024 · barres = IC 95 %", "pluie_accidents", "Nord · fixe") %}
+      <p class="text-sm" id="pluie-stats"></p>{% endcall %}
+    </div>
+  </section>
+
+  <!-- ============ Emploi & logement ============ -->
+  <section role="tabpanel" id="tab-emploi" class="grid lg:grid-cols-2 gap-4" hidden>
+    {% call card("chomage", "Demandeurs d'emploi par micro-région (indice base 100)", "Juillet 2016 = 100 · moyenne mobile 3 mois (window function SQL)", "chomage_index", "4 micro-régions") %}{% endcall %}
+    {% call card("permis_trend", "Logements autorisés : individuel vs collectif", "Permis de construire 2017-2022 ; part sociale au survol", "permis_trend") %}{% endcall %}
+  </section>
+
+  <!-- ============ Climat ============ -->
+  {% set ck = cross.climat_kpis[0] %}{% set st = cross.stations %}{% set rw = cross.rechauffement %}
+  <section role="tabpanel" id="tab-climat" class="space-y-4" hidden>
+    <p class="text-sm muted">Base climatologique Météo-France : relevés mensuels de toutes les stations de l'île depuis {{ ck.debut }}.
+      Non concerné par le filtre de micro-région.</p>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="tile"><div class="tile-label">Stations météo depuis {{ ck.debut }}</div>
+        <div class="tile-value">{{ ck.stations }}</div>
+        <div class="tile-sub muted">{{ "{:,}".format(ck.releves).replace(",", " ") }} relevés mensuels · {{ ck.stations_normales }} avec normales 1991-2020</div></div>
+      <div class="tile"><div class="tile-label">Record de pluie en 24 h</div>
+        <div class="tile-value">{{ "{:,.0f}".format(ck.record_mm).replace(",", " ") }} mm</div>
+        <div class="tile-sub muted">{{ ck.record_station|title }} ({{ ck.record_alti }} m), {{ ck.record_jour }}/{{ "%02d"|format(ck.record_mois) }}/{{ ck.record_annee }}{% if ck.record_cyclone %} · cyclone {{ ck.record_cyclone }}{% endif %}</div></div>
+      <div class="tile"><div class="tile-label">Réchauffement depuis {{ rw[0].annee }}</div>
+        <div class="tile-value">+{{ "%.2f"|format(rw[0].tendance_decennie)|replace(".", ",") }} °C</div>
+        <div class="tile-sub muted">par décennie (tendance linéaire, R² = {{ "%.2f"|format(rw[0].r2)|replace(".", ",") }})</div></div>
+      <div class="tile"><div class="tile-label">Écart de pluie Est / Ouest</div>
+        <div class="tile-value">× {{ (st[0].pluie_normale / st[-1].pluie_normale)|round|int }}</div>
+        <div class="tile-sub muted">{{ "{:,.0f}".format(st[0].pluie_normale).replace(",", " ") }} mm/an ({{ st[0].station|replace("_SAPC", "")|title }}) contre {{ "{:,.0f}".format(st[-1].pluie_normale).replace(",", " ") }} mm ({{ st[-1].station|title }})</div></div>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-4">
+      {% call card("carte_stations", "Carte des pluies : un relief qui coupe l'île en deux", "Stations positionnées en longitude × latitude · couleur = pluie annuelle normale 1991-2020 (mm)", "stations", None, "chart-tall") %}{% endcall %}
+      {% call card("pluie_alti", "Pluie selon l'altitude et l'exposition aux alizés", "Normale annuelle par station · exposition = orientation depuis le Piton des Neiges", "stations", None, "chart-tall") %}
+        <p class="text-sm" id="pluie-alti-stats"></p>{% endcall %}
+      {% call card("gradient", "Gradient thermique : −1 °C tous les 150 m environ", "Température moyenne annuelle (normale 1991-2020) selon l'altitude · droite des moindres carrés", "stations", None, "chart-tall") %}
+        <p class="text-sm" id="gradient-stats"></p>{% endcall %}
+      {% call card("records", "Les 15 plus fortes pluies en 24 h depuis 1950", "Pluie maximale journalière du mois (mm) · cyclone du même mois quand il est référencé", "records_pluie", None, "chart-tall") %}{% endcall %}
+    </div>
+    {% call card("rechauffement", "Anomalie de température annuelle (réf. 1981-2010)", "Moyenne des écarts de chaque station à sa propre moyenne 1981-2010 (stations à années complètes) · trait = moyenne glissante 10 ans", "rechauffement") %}
+      <p class="text-sm" id="rechauffement-stats"></p>{% endcall %}
+    {% call card("pluie_annuelle", "Années sèches, années humides", "Pluie annuelle de l'île en écart à la normale 1991-2020 (moyenne des écarts par station) · cyclones référencés au survol et sur les années extrêmes", "pluie_annuelle") %}{% endcall %}
+    {% call card("regimes", "Régimes saisonniers : quand pleut-il, selon la station ?", "Part de chaque mois dans le cumul annuel (normales 1991-2020) · 18 stations de la plus arrosée (en haut) à la plus sèche", "regimes", None, "chart-tall") %}{% endcall %}
+  </section>
+
+  <!-- ============ Corrélations ============ -->
+  <section role="tabpanel" id="tab-correlations" class="space-y-4" hidden>
+    <p class="text-sm muted">Analyses sur les 24 communes, non filtrées : un filtre par micro-région réduirait trop l'échantillon.</p>
+    <div class="grid lg:grid-cols-2 gap-4">
+      {% call card("corr", "Matrice de corrélation entre indicateurs communaux", "", "corr_matrix", "24 communes", "chart-tall") %}
+        <p class="sub -mt-1">Cliquez une case pour afficher le nuage de points ·
+          <button class="underline" id="corr-toggle">coefficient : <b>Pearson</b></button> · n par paire au survol</p>{% endcall %}
+      {% call card("scatter", "Nuage de points & régression linéaire", "", "pair", "24 communes", "chart-tall") %}
+        <p class="sub flex flex-wrap gap-2 items-center -mt-1"><select id="sx"></select> <span>→</span> <select id="sy"></select></p>
+        <p class="text-sm" id="scatter-stats"></p>{% endcall %}
+    </div>
+    <div class="card" data-chart="features" data-sql="features"><h3>Indicateurs par commune</h3>
+      <p class="sub">La table source de la matrice (vue SQL <code>v_commune_features</code>) · cases vides = donnée absente à la source</p>
+      <div class="tbl" id="features-table" style="max-height:none"></div></div>
+  </section>
+
+  <!-- ============ Données & SQL ============ -->
+  {% set L = lineage %}
+  {% set used_by = {"kpis": "Indicateurs clés", "prix_trend": "Immobilier · tendance", "prix_box": "Immobilier · dispersion",
+                    "prix_evol": "Immobilier · hausses", "acc_heatmap": "Sécurité · heatmap", "acc_gravite": "Sécurité · gravité",
+                    "pluie_accidents": "Sécurité · pluie", "permis_trend": "Emploi & logement · permis",
+                    "chomage_index": "Emploi & logement · chômage", "climat_kpis": "Climat · chiffres clés",
+                    "stations": "Climat · carte, altitude, gradient", "rechauffement": "Climat · réchauffement",
+                    "pluie_annuelle": "Climat · années sèches/humides", "regimes": "Climat · régimes saisonniers",
+                    "records_pluie": "Climat · records",
+                    "corr_matrix": "Corrélations · matrice", "pair": "Corrélations · nuage de points",
+                    "features": "Corrélations · table"} %}
+  <section role="tabpanel" id="tab-donnees" class="space-y-6" hidden>
+    <div>
+      <h2 class="text-lg font-semibold mb-2">Le pipeline, de l'API au graphique</h2>
+      <div class="flow">
+        <div class="flow-step"><b>1 · API open data</b>Opendatasoft (data.regionreunion.com). Filtres, colonnes et agrégats appliqués <i>côté serveur</i>.<br><code class="inline">opendata/fetch.py</code></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><b>2 · CSV bruts</b>{{ L.sources|length }} fichiers, {{ (L.sources|sum(attribute="size_kb") / 1024)|round(1) }} Mo, {{ "{:,}".format(L.sources|sum(attribute="rows")).replace(",", " ") }} lignes.<br><code class="inline">data/raw/*.csv</code></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step rust-step"><b>2 bis · Profil qualité en Rust</b>Binaire natif <code class="inline">datakit</code> : lecture en flux (gzip compris), types, vides, cardinalités{% if L.quality %} en {{ (L.quality|sum(attribute="elapsed_ms"))|round|int }} ms{% endif %}.<br><code class="inline">rust/datakit</code></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><b>3 · Chargement & nettoyage</b>{{ L.steps|length }} instructions SQL <code class="inline">read_csv</code> → tables typées, filtrées, normalisées.<br><code class="inline">territory_schema.sql</code></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><b>4 · Modèle analytique</b>{{ L.tables|length }} tables/vues dans DuckDB, reconstruites à chaque démarrage (~1 s).</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><b>5 · Requêtes nommées</b>{{ L.queries|length }} requêtes paramétrées (<code class="inline">$region</code>).<br><code class="inline">territory_queries.sql</code></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step"><b>6 · Cas d'usage → JSON → ECharts</b>Python assemble, ne calcule rien. Le navigateur ne fait que dessiner.<br><code class="inline">territory_dashboard.py</code></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Sources et volumes</h3>
+      <p class="sub">Requête d'export envoyée à l'API, puis lignes brutes → lignes retenues après nettoyage</p>
+      <div class="tbl" style="max-height:none"><table>
+        <thead><tr><th>Jeu</th><th>Paramètres de l'API</th><th>Fichier</th><th>Lignes brutes</th><th>Table</th><th>Lignes retenues</th></tr></thead>
+        <tbody>
+        {% for s in L.sources %}
+          <tr><td><a class="underline font-semibold" href="{{ s.url }}" target="_blank" rel="noopener" title="{{ s.dataset }}">{{ s.name }}</a></td>
+            <td>{% for k, v in s.params.items() %}<div><b>{{ k }}</b> <code class="inline">{{ v }}</code></div>{% else %}<span class="muted">tout le jeu</span>{% endfor %}</td>
+            <td><code class="inline">{{ s.file }}</code><div class="muted">{{ s.size_kb }} Ko</div></td>
+            <td>{{ "{:,}".format(s.rows).replace(",", " ") if s.rows is not none else "–" }}</td>
+            <td><code class="inline">{{ s.table }}</code></td>
+            <td>{{ "{:,}".format(s.table_rows).replace(",", " ") if s.table_rows is not none else "–" }}</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+    </div>
+
+    {% if L.quality %}
+    <div class="card" id="qualite">
+      <h3>Profil qualité des fichiers bruts <span class="badge rust-badge">Rust</span></h3>
+      <p class="sub">Calculé par le binaire Rust <code class="inline">datakit profile</code> avant tout chargement : il permet de contrôler
+        types, valeurs vides et lignes mal formées à chaque nouveau téléchargement, et justifie les règles de nettoyage ci-dessous. {{ "{:,}".format(L.quality|sum(attribute="rows")).replace(",", " ") }} lignes analysées
+        en {{ (L.quality|sum(attribute="elapsed_ms"))|round|int }} ms, une seule passe par fichier.</p>
+      <div class="tbl" style="max-height:none"><table>
+        <thead><tr><th>Fichier</th><th>Lignes</th><th>Colonnes</th><th>Cellules vides</th><th>Lignes mal formées</th><th>Temps</th><th>Détail par colonne</th></tr></thead>
+        <tbody>
+        {% for f in L.quality %}
+          <tr><td><code class="inline">{{ f.file }}</code></td>
+            <td>{{ "{:,}".format(f.rows).replace(",", " ") }}</td><td>{{ f.columns }}</td>
+            <td>{{ f.null_cells_pct|string|replace(".", ",") }} %</td><td>{{ f.malformed_rows }}</td>
+            <td>{{ f.elapsed_ms|string|replace(".", ",") }} ms</td>
+            <td><details><summary class="cursor-pointer muted">{{ f.columns }} colonnes</summary>
+              <table class="mt-1"><thead><tr><th>Colonne</th><th>Type déduit</th><th>Vides</th><th>Distinctes</th><th>Min</th><th>Max</th></tr></thead><tbody>
+              {% for c in f.column_profiles %}
+                <tr><td><code class="inline">{{ c.name }}</code></td><td>{{ c.inferred_type }}</td>
+                  <td>{{ c.null_pct|string|replace(".", ",") }} %</td>
+                  <td>{{ "{:,}".format(c.distinct).replace(",", " ") }}{% if c.distinct_capped %}+{% endif %}</td>
+                  <td>{{ c.min if c.min is not none else "" }}</td><td>{{ c.max if c.max is not none else "" }}</td></tr>
+              {% endfor %}</tbody></table></details></td></tr>
+        {% endfor %}
+        </tbody></table></div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <h3>Règles de nettoyage appliquées</h3>
+      <ul class="text-sm list-disc pl-5 space-y-1 mt-2">
+        <li><b>DVF</b> : ventes de maisons et appartements seulement ; mutations multi-communes écartées ; surface bâtie 15-400 m² ; prix 500-12 000 €/m² (valeurs aberrantes, P1 ≈ 210 €/m²).</li>
+        <li><b>Accidents</b> : codes commune hétérogènes (<code class="inline">97411</code>, <code class="inline">411</code>, <code class="inline">011</code>) ramenés au code INSEE ; gravité = celle du plus grave usager ; horodatage converti en heure locale (UTC+4).</li>
+        <li><b>Météo</b> : relevés tri-horaires agrégés au jour local ; cumuls de pluie négatifs (traces, −0,1 mm) ramenés à 0 ; jours avec moins de 6 relevés exclus des analyses.</li>
+        <li><b>Revenus</b> : IRIS agrégés à la commune par moyenne pondérée par la population des ménages (approximation d'une médiane) ; 7 petites communes non couvertes à la source.</li>
+        <li><b>Permis</b> : dédoublonnés par numéro (<code class="inline">DISTINCT ON</code>) ; millésime 2023 exclu car incomplet.</li>
+        <li><b>Communes</b> : micro-régions Nord/Est/Ouest/Sud injectées depuis le domaine Python (<code class="inline">domain/territory.py</code>) ; libellés harmonisés.</li>
+      </ul>
+    </div>
+
+    <div>
+      <h2 class="text-lg font-semibold mb-2">Chargement & nettoyage <span class="text-sm font-normal muted">— exécuté au démarrage, <code class="inline">{raw}</code> = dossier des CSV</span></h2>
+      <div class="space-y-2">
+      {% for s in L.steps %}
+        {% set t = L.tables|selectattr("name", "equalto", s.name)|first %}
+        <details class="sql" id="sql-{{ s.name }}">
+          <summary><code class="inline">{{ s.name }}</code> <span class="badge">{{ s.kind }}</span>
+            {% if t %}<span class="badge">{{ "{:,}".format(t.rows).replace(",", " ") }} lignes</span>{% endif %}
+            <span class="muted text-sm">{{ s.description }}</span></summary>
+          <pre class="code"><code class="language-sql">{{ s.sql }}</code></pre>
+        </details>
+      {% endfor %}
+      </div>
+    </div>
+
+    <div>
+      <h2 class="text-lg font-semibold mb-2">Requêtes analytiques <span class="text-sm font-normal muted">— une par graphique, exécutées à chaque affichage</span></h2>
+      <div class="space-y-2">
+      {% for q in L.queries %}
+        <details class="sql" id="sql-{{ q.name }}">
+          <summary><code class="inline">{{ q.name }}</code>
+            {% if q.name in used_by %}<span class="badge">{{ used_by[q.name] }}</span>{% endif %}
+            {% if "$region" in q.sql %}<span class="badge">filtrable</span>{% endif %}
+            <span class="muted text-sm">{{ q.description }}</span></summary>
+          <pre class="code"><code class="language-sql">{{ q.sql }}</code></pre>
+        </details>
+      {% endfor %}
+      </div>
+    </div>
+
+    {% if L.rust %}
+    <div>
+      <h2 class="text-lg font-semibold mb-2">Code Rust <span class="badge rust-badge">datakit</span>
+        <span class="text-sm font-normal muted">— profilage qualité ci-dessus et moteur de pseudonymisation du module Parc & IA</span></h2>
+      <div class="space-y-2">
+      {% for r in L.rust %}
+        <details class="sql" id="rust-{{ loop.index }}">
+          <summary><code class="inline">{{ r.file }}</code> <span class="muted text-sm">{{ r.code.count("\n") }} lignes</span></summary>
+          <pre class="code"><code class="language-rust">{{ r.code }}</code></pre>
+        </details>
+      {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+  <footer class="text-xs muted space-y-1 pt-4">
+    <p>Sources : DVF (DGFiP), Filosofi 2014 (INSEE), populations légales (INSEE), demandeurs d'emploi (Pôle emploi),
+      permis de construire (Sitadel), accidents corporels (BAAC/ONISR), SYNOP Gillot (Météo-France) — via data.regionreunion.com ;
+      base climatologique mensuelle Météo-France, toutes stations 974 depuis 1950 — via meteo.data.gouv.fr.</p>
+    <p>Limites : 24 communes = petit échantillon (corrélation ≠ causalité) ; revenus disponibles pour 17 communes ; ratios rapportés à la population 2016.</p>
+  </footer>
+  <script type="application/json" id="cross-data">{{ cross|tojson }}</script>
+{% endif %}
+</main>
+<script src="/static/dashboard.js"></script>
+</body>
+</html>

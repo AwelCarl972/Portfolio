@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Projets — bornes de recharge, trading algorithmique</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github.min.css">
+  <link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
+  <link rel="stylesheet" href="/static/theme.css">
+  <style>
+    #carte { height: 460px; border-radius: 8px; z-index: 0; }
+    .leaflet-container { background: var(--surface-1); font-family: inherit; }
+    #carte.sombre .leaflet-tile { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.85) saturate(.4); }
+    #carte:not(.sombre) .leaflet-tile { filter: saturate(.3) brightness(1.03); }
+    .frise { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
+    .frise input[type=range] { flex: 1 1 240px; accent-color: var(--s1); }
+    .legende { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--text-secondary); }
+    .legende i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+    .lecture { border-left: 3px solid var(--s1); padding: 4px 0 4px 12px; font-size: 14px; }
+    table.simple { width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+    table.simple th { text-align: left; color: var(--text-secondary); font-weight: 500; border-bottom: 1px solid var(--grid); padding: 4px 6px; }
+    table.simple td { border-bottom: 1px solid var(--grid); padding: 4px 6px; }
+    table.simple td.n, table.simple th.n { text-align: right; }
+    .sql-box { margin-top: 8px; }
+    .flou { filter: blur(3px); user-select: none; background: var(--grid); border-radius: 3px; padding: 0 2px; }
+  </style>
+</head>
+<body class="viz-root">
+<header class="bg-slate-900 text-white px-6 py-4">
+  <h1 class="text-xl font-bold">Projets <span class="text-sky-300 font-normal">· avant ce portfolio, repris et corrigés</span></h1>
+  <p class="text-sm text-slate-300">Projet final Le Wagon (bornes de recharge) · trading algorithmique MQL5 · même chaîne : CSV → SQL DuckDB → ECharts</p>
+  <nav class="mt-2 text-sm"><a class="underline text-sky-300" href="/">Parc & IA</a> · <a class="underline text-sky-300" href="/observatoire">Observatoire Réunion</a> · <span class="font-semibold">Projets</span></nav>
+</header>
+
+<main class="max-w-7xl mx-auto p-6 space-y-5">
+{% if missing %}
+  <div class="card"><h3>Sources des projets absentes</h3>
+    <p class="sub">Importez-les puis relancez le serveur :</p>
+    <pre class="text-sm">python -m app.infrastructure.projets.importer --lewagon &lt;ProjetFinal&gt; --trading &lt;Trading&gt;</pre></div>
+{% else %}
+  {% set B = page.bornes %}{% set k = B.kpis %}
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="bornes" aria-selected="true">Bornes de recharge · Le Wagon</button>
+    <button class="tab" role="tab" data-tab="trading" aria-selected="false">Trading algorithmique</button>
+    <button class="tab" role="tab" data-tab="code" aria-selected="false">Code</button>
+  </nav>
+
+  <!-- ============ Bornes ============ -->
+  <section role="tabpanel" id="tab-bornes" class="space-y-4">
+    <p class="lecture">Projet final de ma formation Le Wagon (2025) : la France a mis en service <b>{{ "{:,}".format(k.points_2023).replace(",", " ") }} points de charge en 2023</b>,
+      soit {{ k.part_2023|int }} % de tout le parc ouvert depuis 2010. La version d'origine (Google Sheets, Python pandas et NumPy, Looker Studio, carte Leaflet)
+      est reprise ici avec ses données, nettoyées en SQL et comptées.</p>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="tile"><div class="tile-label">Points de charge</div><div class="tile-value">{{ "{:,}".format(k.points).replace(",", " ") }}</div>
+        <div class="tile-sub muted">sur {{ "{:,}".format(k.sites).replace(",", " ") }} sites · {{ k.debut }} → {{ k.fin }}</div></div>
+      <div class="tile"><div class="tile-label">Ouverts en 2023</div><div class="tile-value">{{ k.part_2023|int }} %</div>
+        <div class="tile-sub muted">du parc total, l'année du pic</div></div>
+      <div class="tile"><div class="tile-label">Haute puissance (≥ 100 kW)</div><div class="tile-value">{{ "%.1f"|format(k.part_hp)|replace(".", ",") }} %</div>
+        <div class="tile-sub muted">des points dont la puissance est connue</div></div>
+      <div class="tile"><div class="tile-label">La Réunion</div><div class="tile-value">{{ k.points_reunion }}</div>
+        <div class="tile-sub muted">points sur {{ k.sites_reunion }} sites</div></div>
+    </div>
+
+    <div class="card" data-sql="bornes_sites">
+      <h3>Le parc se construit, mois par mois</h3>
+      <p class="sub">Un rond = un site · taille = nombre de points · couleur = puissance maximale du site</p>
+      <div class="flex flex-wrap gap-2 mb-2" id="territoires">
+        <button class="chip" aria-pressed="true" data-vue="metropole">Métropole</button>
+        <button class="chip" aria-pressed="false" data-vue="reunion">La Réunion</button>
+        <button class="chip" aria-pressed="false" data-vue="antilles">Antilles</button>
+      </div>
+      <div class="frise">
+        <button class="btn-sm" id="lecture" style="font-size:14px;padding:3px 12px">▶ Lecture</button>
+        <input type="range" id="mois" min="0" max="0" value="0" aria-label="Mois affiché">
+        <span id="date-carte" class="text-sm" style="min-width:16ch"></span>
+      </div>
+      <div id="carte" role="img" aria-label="Carte des sites de recharge ouverts jusqu'au mois choisi"></div>
+      <div class="legende mt-2" id="legende"></div>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="card" data-chart="annuel" data-sql="bornes_annuel">
+        <h3>Points mis en service par an</h3>
+        <p class="sub">Par classe de puissance · 2025 arrêté à août</p>
+        <div class="chart"></div>
+      </div>
+      <div class="card" data-sql="bornes_qualite">
+        <h3>Du brut au retenu</h3>
+        <p class="sub">Chaque règle de nettoyage et ce qu'elle touche (table <code class="inline">pj_qualite</code>)</p>
+        <table class="simple"><tbody>
+          {% for q in B.qualite %}<tr><td>{{ q.regle }}</td><td class="n">{{ "{:,}".format(q.lignes).replace(",", " ") }}</td></tr>{% endfor %}
+        </tbody></table>
+        <p class="text-sm mt-3"><b>Ce que j'ai corrigé en reprenant le projet :</b></p>
+        <ul class="text-sm list-disc ml-5 muted">
+          <li>les dates de 1930 et 2002 étaient masquées par un filtre « après 2014 » sans être comptées : elles sont maintenant écartées et visibles ;</li>
+          <li>la vue par trimestre lisait des clés « 2025-Q%q » : le trimestre est recalculé en SQL depuis le mois ;</li>
+          <li>une puissance de 0 kW n'est pas une borne à 0 kW mais une valeur manquante ;</li>
+          <li>la carte redessinait jusqu'à 126 790 marqueurs à chaque image : 30 113 sites, dessinés une fois.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Trading ============ -->
+  {% set T = page.trading %}
+  <section role="tabpanel" id="tab-trading" class="space-y-4" hidden>
+    <p class="lecture">Jusqu'en 2022, j'ai écrit des robots de trading en MQL5 et lancé
+      <b>{{ "{:,}".format(T.resume|sum(attribute="passes")).replace(",", " ") }} tests de paramètres</b> sous MetaTrader 5.
+      Relus aujourd'hui avec un œil d'analyste, ils montrent surtout un piège : sur un mois de données, les meilleurs réglages reposent
+      sur une poignée de trades, et ceux qui tradent vraiment perdent.</p>
+    <div class="card" data-sql="trading_resume">
+      <h3>Les trois optimisations</h3>
+      <p class="sub">Comptes de démonstration, 100 000 € de capital simulé · une passe = un jeu de paramètres testé</p>
+      <div style="overflow-x:auto"><table class="simple">
+        <thead><tr><th>Marché et période</th><th class="n">Jours</th><th class="n">Passes</th><th class="n">Rentables</th>
+          <th class="n">Gain médian</th><th class="n">Meilleur gain</th><th class="n">Trades de la meilleure</th><th class="n">Trades médians</th></tr></thead>
+        <tbody>{% for r in T.resume %}<tr><td>{{ r.libelle }}</td><td class="n">{{ r.jours }}</td>
+          <td class="n">{{ "{:,}".format(r.passes).replace(",", " ") }}</td><td class="n">{{ r.pct_rentables|int }} %</td>
+          <td class="n">{{ "{:,.0f}".format(r.profit_median).replace(",", " ") }} €</td><td class="n">{{ "{:,.0f}".format(r.profit_max).replace(",", " ") }} €</td>
+          <td class="n">{{ r.trades_meilleure }}</td><td class="n">{{ r.trades_median|int }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="card" data-chart="nuage" data-sql="trading_nuage">
+        <h3>Gain contre risque, passe par passe</h3>
+        <p class="sub" id="nuage-sub">Chaque point est un jeu de paramètres · couleur = nombre de trades</p>
+        <div class="flex flex-wrap gap-2" id="optis">{% for r in T.resume %}
+          <button class="chip" aria-pressed="{{ 'true' if loop.first else 'false' }}" data-opt="{{ r.id }}">{{ r.libelle.split(' · ')[0] }} · {{ r.jours }} j</button>{% endfor %}</div>
+        <div class="chart chart-tall"></div>
+      </div>
+      <div class="card" data-chart="fiabilite" data-sql="trading_fiabilite">
+        <h3>Peu de trades, beaucoup d'illusion</h3>
+        <p class="sub">Gain médian (point) et 90 % des passes (trait, P5-P95), selon le nombre de trades · optimisation choisie à gauche</p>
+        <div class="chart chart-tall"></div>
+      </div>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-4">
+      {% for b in T.backtests %}{% set r = b.resume %}
+      <div class="card"><h3>Un backtest « parfait » : facteur de profit {{ r["Facteur de profit"] }}</h3>
+        <p class="sub">{{ r["Expert"] }} · {{ r["Symbole"] }} {{ r["Période"] }}</p>
+        <table class="simple"><tbody>{% for key, v in r.items() if key not in ("Expert", "Symbole", "Période") %}
+          <tr><td>{{ key }}</td><td class="n">{{ v }}</td></tr>{% endfor %}</tbody></table>
+        <p class="text-sm mt-3">Un facteur de profit de 9 ressemble à une machine à gagner. Mais <b>{{ r["Nb trades"] }} trades</b> dont
+          <b>{{ r["Positions gagnantes (% du total)"].split(" ")[0] }} seul gagnant</b> : tout le résultat tient sur une position. Ce n'est pas une stratégie, c'est un tirage.</p>
+      </div>{% endfor %}
+      <div class="card"><h3>Ce que je ferais aujourd'hui</h3>
+        <ul class="text-sm list-disc ml-5 space-y-1">
+          <li><b>Séparer apprentissage et validation</b> : optimiser sur une période, juger sur la suivante (walk-forward), jamais sur la même.</li>
+          <li><b>Exiger un volume minimal</b> de trades avant de comparer deux réglages : sur une dizaine de trades, un écart ne prouve presque rien.</li>
+          <li><b>Regarder la distribution</b>, pas le maximum : sur 3 120 passes, la meilleure est d'abord la plus chanceuse.</li>
+          <li><b>Compter les coûts</b> (spread, swap, glissement) dans chaque passe, pas après.</li>
+        </ul>
+        <p class="text-sm muted mt-3">C'est la même discipline que dans l'Observatoire : afficher les limites à côté des résultats.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Code ============ -->
+  <section role="tabpanel" id="tab-code" class="space-y-4" hidden>
+    <p class="lecture">Du code d'avant et d'aujourd'hui, relu et commenté. Les identifiants de compte des scripts de trading sont floutés :
+      le compte de démonstration n'existe plus, mais un secret ne se publie pas.</p>
+    {% for fichier, titre, lang, texte in [
+        ("ichimoku_multi_tf.mq5", "MQL5 · un indicateur sur trois unités de temps", "cpp", "Ce qu'il montre : structurer un robot (initialisation, lecture d'indicateurs, déclenchement une fois par bougie) et raisonner en plusieurs échelles de temps."),
+        ("ichimoku_original.mq5", "MQL5 · le même robot, code original complet", "cpp", "Le fichier tel que je l'ai écrit en 2022, sans retouche : la version ci-dessus en est un extrait remis en forme."),
+        ("connexion_mt5.py", "Python · connexion à MetaTrader 5 et export des symboles", "python", "Ce qu'il montre : piloter la plateforme depuis Python (bibliothèque MetaTrader5) et sortir ses données en CSV, première étape de toute analyse. Identifiants floutés."),
+        ("carte_lewagon.js", "JavaScript · la carte d'origine (Le Wagon)", "javascript", "Ce qu'il montre : le projet tel que livré, et deux défauts que je sais aujourd'hui repérer : un filtre qui cache des données au lieu de les compter, et un rendu qui ne tient pas la charge."),
+        ("carte_portfolio.js", "JavaScript · la carte refaite pour cette page", "javascript", "Ce qu'il montre : agréger avant d'afficher (30 113 sites au lieu de 126 790 points) et ne dessiner qu'une fois.")] %}
+    <details class="sql" {% if loop.first %}open{% endif %}><summary><b>{{ titre }}</b></summary>
+      <p class="text-sm muted mb-2">{{ texte }}</p>
+      <pre class="code"><code class="language-{{ lang }}">{{ extraits[fichier] }}</code></pre></details>
+    {% endfor %}
+    <details class="sql"><summary><b>SQL · le nettoyage des bornes</b> <span class="muted text-sm">table pj_borne</span></summary>
+      <p class="text-sm muted mb-2">{{ page.sql.pj_borne.description }}</p>
+      <pre class="code"><code class="language-sql">{{ page.sql.pj_borne.sql }}</code></pre></details>
+    <details class="sql"><summary><b>SQL · le classement des passes</b> <span class="muted text-sm">requête trading_resume</span></summary>
+      <p class="text-sm muted mb-2">{{ page.sql.trading_resume.description }}</p>
+      <pre class="code"><code class="language-sql">{{ page.sql.trading_resume.sql }}</code></pre></details>
+  </section>
+  <script type="application/json" id="page-data">{{ page|tojson }}</script>
+{% endif %}
+</main>
+<script src="/static/projets.js"></script>
+</body>
+</html>
