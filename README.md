@@ -23,6 +23,7 @@
 | Extrêmes | **1 825 mm en 24 h** à Foc-Foc (cyclone Denise, 1966) | Records rapprochés des cyclones du même mois |
 | Emploi | 174 080 demandeurs d'emploi fin 2022 (−1,9 % sur un an), évolution comparée des 4 micro-régions | Indice base 100, moyenne mobile (window functions) |
 | Électricité | **28 % → 92 %** d'électricité renouvelable entre 2021 et 2024, CO₂ divisé par près de 10 ; la pointe tombe en été austral (climatisation) | 52 608 heures EDF, fuseau horaire corrigé et testé, `UNPIVOT`, `arg_max`, part recalculée contre publiée |
+| BTP | **6 022 marchés publics de travaux** exécutés à La Réunion depuis 2019 : **93 %** du montant va à des établissements de l'île, les 10 premières entreprises en captent **34 %**, et **16 %** des marchés n'ont reçu qu'une offre (26 % sous 100 k€) | Deux formats DECP empilés (`UNION ALL BY NAME`), 1 204 SIRET nommés par SIRENE, plafonds d'accords-cadres partagés comptés une fois (`count(*) OVER`) |
 | Francophonie canadienne | Hors Québec, **1 million** de francophones en 2021 (+39 % depuis 1951) mais une part **divisée par deux** (7,3 % → 3,5 %). Le français se transmet à la maison à **89 %** au Nouveau-Brunswick, 42 % au Manitoba | 4 tableaux de Statistique Canada, `PIVOT`, `LAG`, `arg_min`/`arg_max`, parts recalculées puis contrôlées |
 | Immigration francophone | **28 975** francophones admis hors Québec en 2025 (×3,7 depuis 2019, 8,7 % des admissions pour une cible de 8,5 %) ; **42 %** ont choisi Ottawa | 28 000 lignes mensuelles IRCC, cellules masquées gardées à NULL |
 | Choisir une ville | Sur 9 villes et 11 indicateurs (francophonie, coût de la vie, emploi, cadre de vie), **Ottawa** arrive en tête à poids égaux ; **Moncton** passe devant dès que la francophonie compte double | Notes min-max (`UNPIVOT` + fenêtres), poids réglables dans la page |
@@ -103,7 +104,28 @@ donc relisible et versionnée comme du code. Trois pages, exportées en PDF et v
 
 Ouvrir `powerbi/Electricite-Reunion.pbip` dans Power BI Desktop, puis *Actualiser* (accès anonyme à l'API publique).
 
-## 3. Francophonie canadienne (`/francophonie`)
+## 3. BTP à La Réunion (`/btp`)
+
+Qui commande des travaux sur l'île, qui les remporte, avec combien de concurrents, et combien de logements sont autorisés.
+Quatre onglets : **La commande publique · Qui remporte les marchés · Construction de logements · Données & SQL**.
+
+- **Sources** : données essentielles de la commande publique (DECP, data.economie.gouv.fr), marchés de travaux (CPV 45) exécutés
+  en 974, dans les deux formats réglementaires (arrêtés de 2019 et de 2022) ; répertoire SIRENE (recherche-entreprises.api.gouv.fr)
+  pour nommer acheteurs et titulaires ; permis de construire Sitadel (2017-2022).
+- **Pièges traités** : SIRET lus comme des nombres (zéro de tête perdu), nature du marché écrite de deux façons, cinq libellés pour
+  la même procédure, plafond d'un accord-cadre multi-attributaire répété sur chaque ligne (compté une fois, réparti entre les
+  titulaires), une entreprise signant depuis plusieurs établissements (regroupée par SIREN), réponses SIRENE plein texte vérifiées.
+- **Hors norme mis à part** : quatre contrats globaux de plus de 100 M€ (conception, réalisation, exploitation) sont montrés dans un
+  tableau à part ; un seul aurait pesé plus lourd que des centaines de chantiers dans les classements.
+- **Vie privée** : les dirigeants renvoyés par SIRENE ne sont pas conservés, un entrepreneur individuel n'est jamais nommé (test).
+- **Contrôle croisé** : un test vérifie que le classement SQL (familles de travaux, tranches, types d'acheteurs) rend exactement ce que
+  disent les fonctions du domaine Python.
+
+```powershell
+python -m app.infrastructure.opendata.fetch decp_arrete2019 decp_arrete2022 sirene_decp permis population
+```
+
+## 4. Francophonie canadienne (`/francophonie`)
 
 Le français hors Québec en 5 onglets : **Évolution 1951-2021 · Où vivre en français · Immigration depuis 2015 ·
 Choisir sa ville · Données & SQL**. Même chaîne que l'Observatoire, et même règle : chaque graphique a ses boutons
@@ -143,7 +165,7 @@ Choisir sa ville · Données & SQL**. Même chaîne que l'Observatoire, et même
 python -m app.infrastructure.opendata.fetch statcan_langue_maternelle statcan_plos statcan_connaissance statcan_langue_maison statcan_recensement_villes statcan_mbm statcan_loyers statcan_revenus statcan_chomage_rmr statcan_criminalite statcan_satisfaction ircc_francophones_rmr ircc_rp_rmr
 ```
 
-## 4. Rust : `datakit`
+## 5. Rust : `datakit`
 
 Binaire natif (`rust/datakit`) appelé par Python via un tube local. Il ne touche à aucune base : il reçoit
 ses entrées et répond en JSON.
@@ -158,7 +180,7 @@ ses entrées et répond en JSON.
   disponible en repli (`PRIVACY_ENGINE=python`).
 - Tests unitaires Rust : `cargo test` ; dépendances limitées à l'essentiel (`csv`, `flate2`, `hmac`, `sha2`, `fancy-regex`, `serde`).
 
-## 5. Parc & IA : maintenance prédictive et confidentialité (`/parc`)
+## 6. Parc & IA : maintenance prédictive et confidentialité (`/parc`)
 
 Gestion d'un parc de véhicules et d'engins (données simulées, réalistes pour La Réunion) : score de risque
 par actif, dérive des intervalles de panne, et **date limite de commande des pièces selon le fret maritime
@@ -178,7 +200,7 @@ Texte brut ──► Masquage local (Rust) ──► Payload anonymisé ──�
   ne ressemblant à aucun motif ne serait pas masqué. Suite prévue : une étape de reconnaissance d'entités locale
   derrière le même port `Anonymizer`.
 
-## 6. Projets : avant ce portfolio, repris et corrigés (`/projets`)
+## 7. Projets : avant ce portfolio, repris et corrigés (`/projets`)
 
 Deux travaux antérieurs, rechargés dans la même chaîne (CSV → SQL DuckDB → ECharts) et relus avec un œil d'analyste.
 

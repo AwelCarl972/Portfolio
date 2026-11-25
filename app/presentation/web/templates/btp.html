@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BTP à La Réunion — commande publique de travaux et construction, en données</title>
+  <meta name="description" content="Qui commande des travaux à La Réunion, qui les remporte, avec combien de concurrents, et combien de logements sont autorisés. Données ouvertes DECP, SIRENE et Sitadel analysées en SQL.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+  <link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github.min.css">
+  <link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
+  <link rel="stylesheet" href="/static/theme.css?v={{ v }}">
+  <style>
+    .lecture { border-left: 3px solid var(--s1); padding: 4px 0 4px 12px; font-size: 14px; }
+    table.simple { width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+    table.simple th { text-align: left; color: var(--text-secondary); font-weight: 500; border-bottom: 1px solid var(--grid); padding: 4px 6px; }
+    table.simple td { border-bottom: 1px solid var(--grid); padding: 4px 6px; }
+    table.simple td.n, table.simple th.n { text-align: right; }
+    .scroll-x { overflow-x: auto; }
+    .sql-box, .tbl-box { margin-top: 8px; }
+  </style>
+</head>
+<body class="viz-root">
+<header class="bg-slate-900 text-white px-4 sm:px-6 py-4">
+  <h1 class="text-xl font-bold">BTP à La Réunion <span class="text-sky-300 font-normal">· qui commande, qui construit, en données</span></h1>
+  <p class="text-sm text-slate-300">Commande publique de travaux (DECP) · répertoire SIRENE · permis de construire (Sitadel) → SQL DuckDB → ECharts</p>
+  <nav class="mt-2 text-sm"><a class="underline text-sky-300" href="/">Accueil</a> · <a class="underline text-sky-300" href="/observatoire">Observatoire Réunion</a> · <a class="underline text-sky-300" href="/energie">Électricité Réunion</a> · <span class="font-semibold">BTP Réunion</span> · <a class="underline text-sky-300" href="/francophonie">Francophonie Canada</a> · <a class="underline text-sky-300" href="/parc">Parc & IA</a> · <a class="underline text-sky-300" href="/projets">Projets</a> · <a class="underline text-sky-300" href="/cv">CV</a></nav>
+</header>
+
+<main class="max-w-7xl mx-auto px-3 py-4 sm:p-6 space-y-5">
+{% if missing %}
+  <div class="card"><h3>Données de la commande publique absentes</h3>
+    <p class="sub">Téléchargez-les (environ 5 minutes : le répertoire SIRENE est interrogé entreprise par entreprise) puis relancez le serveur :</p>
+    <pre class="text-sm">python -m app.infrastructure.opendata.fetch decp_arrete2019 decp_arrete2022 sirene_decp permis population</pre></div>
+{% else %}
+  {% set k = page.kpis %}
+  {% macro n(v) %}{{ "{:,.0f}".format(v).replace(",", " ") }}{% endmacro %}
+  {% macro p(v, d=1) %}{{ ("%." ~ d ~ "f")|format(v)|replace(".", ",") }}{% endmacro %}
+  {% set conc = page.bt_concentration %}
+  {% set top10 = conc|selectattr("premieres", "eq", 10)|first %}
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="commande" aria-selected="true">La commande publique</button>
+    <button class="tab" role="tab" data-tab="entreprises" aria-selected="false">Qui remporte les marchés</button>
+    <button class="tab" role="tab" data-tab="logements" aria-selected="false">Construction de logements</button>
+    <button class="tab" role="tab" data-tab="donnees" aria-selected="false">Données & SQL</button>
+  </nav>
+
+  <!-- ============ Commande publique ============ -->
+  <section role="tabpanel" id="tab-commande" class="space-y-4">
+    <p class="lecture">Communes, Région, Département, bailleurs sociaux, hôpital : à La Réunion, l'argent public fait vivre une grande partie
+      du BTP. Chaque marché public doit être publié avec son acheteur, son titulaire, son montant et le nombre d'offres reçues. J'ai
+      rassemblé les <b>{{ n(k.marches) }} marchés de travaux</b> exécutés sur l'île et notifiés entre {{ k.an_min }} et {{ k.an_max }},
+      puis nommé chaque acheteur et chaque entreprise grâce au répertoire SIRENE. Le marché médian vaut <b>{{ n(k.montant_median / 1000) }} k€</b>,
+      et depuis 2024, {{ p(k.offre_unique_pct, 0) }} % des marchés n'ont reçu <b>qu'une seule offre</b>. Quatre contrats globaux
+      de plus de 100 M€ sont mis à part (en bas de cet onglet) : un seul pèserait plus lourd que des centaines de chantiers.</p>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="tile"><div class="tile-label">Marchés de travaux recensés</div><div class="tile-value">{{ n(k.marches) }}</div>
+        <div class="tile-sub muted">{{ k.an_min }}-{{ k.an_max }} · {{ n(k.acheteurs) }} acheteurs publics</div></div>
+      <div class="tile"><div class="tile-label">Marché médian</div><div class="tile-value">{{ n(k.montant_median / 1000) }} k€</div>
+        <div class="tile-sub muted">la moitié des marchés vaut moins</div></div>
+      <div class="tile"><div class="tile-label">Offres reçues (médiane)</div><div class="tile-value">{{ p(k.offres_mediane, 0) }}</div>
+        <div class="tile-sub muted">{{ p(k.offre_unique_pct, 0) }} % des marchés : une seule offre (depuis 2024)</div></div>
+      <div class="tile"><div class="tile-label">Montant remporté par des entreprises de l'île</div><div class="tile-value">{{ p(k.part_locale_pct, 0) }} %</div>
+        <div class="tile-sub muted">établissement signataire situé à La Réunion</div></div>
+    </div>
+    <div class="grid lg:grid-cols-3 gap-4">
+      <div class="card lg:col-span-2" data-chart="par_an" data-sql="bt_par_an">
+        <h3>Marchés de travaux publiés chaque année</h3>
+        <p class="sub">Nombre de marchés par tranche de montant · la hausse de 2024 reflète surtout la nouvelle obligation de publication, pas l'activité (voir les limites) · {{ k.an_max }} : année en cours</p>
+        <div class="chart chart-tall"></div>
+      </div>
+      <div class="card" data-chart="concurrence" data-sql="bt_concurrence">
+        <h3>Plus le marché est petit, moins il y a de concurrents</h3>
+        <p class="sub">Répartition des marchés selon le nombre d'offres reçues, par tranche de montant (marchés publiés depuis 2024)</p>
+        <div class="chart chart-tall"></div>
+      </div>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="card" data-chart="familles" data-sql="bt_familles">
+        <h3>Ce qui est commandé</h3>
+        <p class="sub">Montant notifié par famille de travaux (code CPV), en millions d'euros · gris = code générique, sans détail</p>
+        <div class="chart"></div>
+      </div>
+      <div class="card" data-chart="acheteurs" data-sql="bt_acheteurs_type">
+        <h3>Qui commande</h3>
+        <p class="sub">Montant notifié par type d'acheteur public, en millions d'euros (catégorie juridique INSEE)</p>
+        <div class="chart"></div>
+      </div>
+    </div>
+    <div class="grid lg:grid-cols-3 gap-4">
+      <div class="card lg:col-span-2" data-sql="bt_top_acheteurs">
+        <h3>Les 15 acheteurs qui commandent le plus de travaux</h3>
+        <div class="scroll-x"><table class="simple mt-2"><thead><tr><th>Acheteur</th><th>Type</th><th class="n">Marchés</th><th class="n">Montant (M€)</th><th class="n">Médian (k€)</th></tr></thead><tbody>
+        {% for r in page.bt_top_acheteurs %}<tr><td>{{ r.nom }}</td><td class="muted">{{ r.type_acheteur }}</td><td class="n">{{ n(r.marches) }}</td>
+          <td class="n">{{ p(r.montant_m) }}</td><td class="n">{{ n(r.median_k) }}</td></tr>{% endfor %}
+        </tbody></table></div>
+      </div>
+      <div class="card" data-sql="bt_procedures">
+        <h3>Comment les marchés sont passés</h3>
+        <table class="simple mt-2"><thead><tr><th>Procédure</th><th class="n">Part</th><th class="n">Médian (k€)</th></tr></thead><tbody>
+        {% for r in page.bt_procedures %}<tr><td>{{ r.procedure }}</td><td class="n">{{ p(r.part_pct) }} %</td><td class="n">{{ n(r.median_k) }}</td></tr>{% endfor %}
+        </tbody></table>
+        <p class="text-sm muted mt-2">La procédure adaptée (MAPA), plus souple, concerne les marchés sous les seuils européens : c'est le terrain des PME locales.</p>
+      </div>
+    </div>
+    <div class="card" data-sql="bt_hors_norme_q">
+      <h3>Mis à part : les contrats globaux de plus de 100 M€</h3>
+      <p class="sub">Conception, construction, puis exploitation ou maintenance sur des années : ce ne sont plus des chantiers, et ils sont retirés de
+        tous les totaux et classements de la page</p>
+      <div class="scroll-x"><table class="simple mt-2"><thead><tr><th>Année</th><th>Acheteur</th><th>Titulaire (mandataire)</th><th>Objet</th><th class="n">Montant (M€)</th></tr></thead><tbody>
+      {% for r in page.bt_hors_norme_q %}<tr><td>{{ r.annee }}</td><td>{{ r.acheteur }}</td><td>{{ r.titulaire }}</td>
+        <td class="muted">{{ r.objet|truncate(110) }}</td><td class="n">{{ p(r.montant_m) }}</td></tr>{% endfor %}
+      </tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ============ Entreprises ============ -->
+  <section role="tabpanel" id="tab-entreprises" class="space-y-4" hidden>
+    {% set pme = page.bt_taille|selectattr("categorie", "eq", "PME")|map(attribute="part_montant_pct")|sum %}
+    <p class="lecture">{{ n(k.entreprises) }} entreprises ont remporté au moins un marché de travaux. Les {{ top10.premieres }} premières captent
+      <b>{{ p(top10.part_pct, 0) }} %</b> du montant, et les PME <b>{{ p(pme, 0) }} %</b>. Quand un même plafond d'accord-cadre est partagé entre
+      plusieurs entreprises, chacune en reçoit une part égale : sans cette règle, le même argent serait compté plusieurs fois.</p>
+    <div class="card" data-sql="bt_top_titulaires">
+      <h3>Les 15 entreprises qui remportent le plus de montant</h3>
+      <div class="scroll-x"><table class="simple mt-2"><thead><tr><th class="n">Rang</th><th>Entreprise</th><th>Taille</th><th>Établissement</th><th class="n">Marchés</th><th class="n">Montant (M€)</th><th class="n">Part</th></tr></thead><tbody>
+      {% for r in page.bt_top_titulaires %}<tr><td class="n">{{ r.rang }}</td><td>{{ r.nom }}</td><td class="muted">{{ r.categorie }}</td><td class="muted">{{ r.implantation }}</td>
+        <td class="n">{{ n(r.marches) }}</td><td class="n">{{ p(r.montant_m) }}</td><td class="n">{{ p(r.part_pct) }} %</td></tr>{% endfor %}
+      </tbody></table></div>
+      <p class="text-sm muted mt-2">Montants notifiés : pour un accord-cadre, c'est un plafond, pas ce qui a été réellement facturé.</p>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="card" data-chart="taille" data-sql="bt_taille">
+        <h3>PME, ETI ou grands groupes ?</h3>
+        <p class="sub">Part du montant remporté, selon la taille de l'entreprise (INSEE) et l'implantation de l'établissement signataire</p>
+        <div class="chart"></div>
+      </div>
+      <div class="card" data-chart="concentration" data-sql="bt_concentration">
+        <h3>Un marché concentré</h3>
+        <p class="sub">Part du montant total captée par les premières entreprises, sur {{ n(conc[0].entreprises) }} titulaires</p>
+        <div class="chart"></div>
+      </div>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="card">
+        <h3>Ce que j'en ferais pour une entreprise du BTP</h3>
+        <ul class="text-sm list-disc ml-5 space-y-1 mt-2">
+          <li><b>Veille et ciblage</b> : quels acheteurs commandent votre métier, à quel montant, avec combien de concurrents. Répondre là où il y a
+            peu d'offres, plutôt que partout.</li>
+          <li><b>Lire la concurrence</b> : qui gagne chez quel acheteur, sur quelle famille de travaux, et à quel prix médian.</li>
+          <li><b>Piloter les chantiers</b> : la même chaîne (extraction, nettoyage SQL, tableau de bord web) s'applique à vos propres données :
+            budget contre réalisé, marge par chantier, retards, sans changer de logiciel.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Pourquoi je m'y connais</h3>
+        <ul class="text-sm list-disc ml-5 space-y-1 mt-2">
+          <li>J'ai été <b>maçon puis chef de chantier</b>, et diagnostiqueur immobilier : je sais ce que recouvre un lot « gros œuvre » ou un
+            accord-cadre d'entretien.</li>
+          <li>Les pièges de ces données se voient quand on connaît le métier : un plafond d'accord-cadre n'est pas un chiffre d'affaires, et un
+            marché de travaux à 46 € est une erreur de saisie.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Logements ============ -->
+  <section role="tabpanel" id="tab-logements" class="space-y-4" hidden>
+    {% set la = page.bt_logements_an %}
+    <p class="lecture">Le carnet de commandes du bâtiment se lit aussi dans les permis de construire. Entre {{ la[0].annee }} et {{ la[-1].annee }},
+      les communes ont autorisé <b>{{ n(la|sum(attribute="total")) }} logements</b>, dont {{ p(100 * (la|sum(attribute="collectif")) / (la|sum(attribute="total")), 0) }} %
+      en collectif et {{ p(100 * (la|sum(attribute="social")) / (la|sum(attribute="total")), 0) }} % de logements sociaux.</p>
+    <div class="card" data-chart="logements" data-sql="bt_logements_an">
+      <h3>Logements autorisés chaque année</h3>
+      <p class="sub">Permis de construire créant des logements · barres = individuel et collectif · ligne = part de logements sociaux (axe de droite)</p>
+      <div class="chart chart-tall"></div>
+    </div>
+    <div class="grid lg:grid-cols-3 gap-4">
+      <div class="card" data-chart="regions" data-sql="bt_logements_region">
+        <h3>Où l'on construit le plus</h3>
+        <p class="sub">Logements autorisés par an pour 1 000 habitants, {{ la[0].annee }}-{{ la[-1].annee }}</p>
+        <div class="chart" style="height: 240px"></div>
+      </div>
+      <div class="card lg:col-span-2" data-sql="bt_top_communes">
+        <h3>Commune par commune</h3>
+        <div class="tbl" style="max-height: 320px"><table class="simple"><thead><tr><th>Commune</th><th>Micro-région</th><th class="n">Logements</th><th class="n">Collectif</th><th class="n">Social</th><th class="n">m² par maison</th></tr></thead><tbody>
+        {% for r in page.bt_top_communes %}<tr><td>{{ r.nom }}</td><td class="muted">{{ r.region }}</td><td class="n">{{ n(r.logements) }}</td>
+          <td class="n">{{ p(r.part_collectif_pct, 0) }} %</td><td class="n">{{ p(r.part_sociale_pct, 0) }} %</td><td class="n">{{ n(r.m2_maison) if r.m2_maison else "–" }}</td></tr>{% endfor %}
+        </tbody></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Données ============ -->
+  <section role="tabpanel" id="tab-donnees" class="space-y-4" hidden>
+    <div class="flow">
+      <div class="flow-step"><b>1 · Téléchargement</b>marchés de travaux (CPV 45) exécutés en 974, filtrés côté serveur, dans les deux formats DECP</div><div class="flow-arrow">→</div>
+      <div class="flow-step"><b>2 · Enrichissement</b>{{ n(page.sources|selectattr("fichier", "eq", "sirene_decp.csv")|map(attribute="lignes")|first) }} SIRET interrogés dans SIRENE : nom, taille, implantation</div><div class="flow-arrow">→</div>
+      <div class="flow-step"><b>3 · Nettoyage</b>formats harmonisés, doublons, montants aberrants, plafonds partagés comptés une fois</div><div class="flow-arrow">→</div>
+      <div class="flow-step"><b>4 · Classement</b>familles de travaux, tranches et types d'acheteurs écrits dans le domaine</div><div class="flow-arrow">→</div>
+      <div class="flow-step"><b>5 · Restitution</b>{{ page.sql.values()|rejectattr("etape")|list|length }} requêtes nommées → JSON → ECharts</div>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="card"><h3>Sources</h3>
+        <table class="simple"><thead><tr><th>Fichier</th><th>Jeu de données</th><th class="n">Lignes</th><th class="n">Ko</th></tr></thead><tbody>
+        {% set titres = {"decp_arrete2019": "Marchés publics, format de l'arrêté de 2019 (data.economie.gouv.fr)",
+                         "decp_arrete2022": "Marchés publics, format de l'arrêté de 2022, publié depuis 2024",
+                         "sirene_decp": "Répertoire SIRENE (recherche-entreprises.api.gouv.fr)",
+                         "permis": "Permis de construire, Sitadel (data.regionreunion.com)",
+                         "population": "Populations légales INSEE (data.regionreunion.com)"} %}
+        {% for s in page.sources %}
+          <tr><td><code class="inline">{{ s.fichier }}</code></td><td>{{ titres[s.fichier.split(".")[0]] }}</td>
+            <td class="n">{{ n(s.lignes) }}</td><td class="n">{{ s.ko }}</td></tr>{% endfor %}
+        </tbody></table>
+        <p class="text-sm muted mt-2">Licence Ouverte. Les dirigeants renvoyés par SIRENE ne sont pas conservés, et un entrepreneur individuel
+          n'est jamais nommé : c'est une personne, pas une société.</p></div>
+      <div class="card" data-sql="bt_qualite"><h3>Du brut au retenu</h3>
+        <table class="simple"><tbody>{% for q in page.bt_qualite %}
+          <tr><td>{{ q.etape }}</td><td class="n">{{ n(q.valeur) if q.valeur % 1 == 0 else p(q.valeur, 1) }}</td></tr>{% endfor %}
+        </tbody></table>
+        <p class="text-sm mt-3"><b>Règles de nettoyage</b></p>
+        <ul class="text-sm list-disc ml-5 muted">
+          <li>deux formats réglementaires empilés (<code class="inline">UNION ALL BY NAME</code>) ; la nature du marché est écrite tantôt en
+            capitales, tantôt non, et ramenée à trois valeurs ;</li>
+          <li>le format de 2019 lit les SIRET comme des nombres : le zéro de tête perdu est rétabli (<code class="inline">lpad</code>) ;</li>
+          <li>un accord-cadre multi-attributaire répète son plafond sur chaque ligne : compté une fois dans les totaux, réparti à parts égales
+            entre les titulaires dans les classements (fenêtre <code class="inline">count(*) OVER</code>) ;</li>
+          <li>SIRENE est interrogé en plein texte : une réponse dont le SIREN ne correspond pas au SIRET cherché est écartée.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Limites</h3>
+      <ul class="text-sm list-disc ml-5 space-y-1 mt-2 muted">
+        <li><b>Les données ne sont pas exhaustives</b> : tous les acheteurs ne publient pas, ou pas tous leurs marchés. Le bond de 2024 vient du
+          nouveau format de publication, obligatoire depuis le 1er janvier 2024 : la courbe mesure la transparence, pas l'activité
+          du BTP, qui a reculé d'après la fédération régionale.</li>
+        <li><b>Un montant notifié n'est pas un chiffre d'affaires</b> : pour un accord-cadre, c'est un plafond ; les avenants ne sont pas comptés.</li>
+        <li>Seul le mandataire d'un groupement est connu : ses co-traitants et sous-traitants n'apparaissent pas.</li>
+        <li>Le nombre d'offres reçues n'est publié que dans le format de 2022 (marchés publiés depuis 2024).</li>
+        <li>L'implantation est celle de l'établissement qui a signé : une agence réunionnaise d'un groupe national compte comme locale.</li>
+        <li>Les permis s'arrêtent en 2022 dans la source ouverte (2023 incomplet, écarté), et un logement autorisé n'est pas toujours construit.</li>
+      </ul>
+    </div>
+    <h3 class="font-semibold">Chargement et nettoyage</h3>
+    {% for name, q in page.sql.items() if q.etape %}
+    <details class="sql" id="sql-{{ name }}"><summary><b>{{ name }}</b> <span class="muted text-sm">{{ q.description }}</span></summary>
+      <pre class="code"><code class="language-sql">{{ q.sql }}</code></pre></details>{% endfor %}
+    <h3 class="font-semibold">Requêtes de la page</h3>
+    {% for name, q in page.sql.items() if not q.etape %}
+    <details class="sql" id="sql-{{ name }}"><summary><b>{{ name }}</b> <span class="muted text-sm">{{ q.description }}</span></summary>
+      <pre class="code"><code class="language-sql">{{ q.sql }}</code></pre></details>{% endfor %}
+  </section>
+  <script type="application/json" id="page-data">{{ page|tojson }}</script>
+{% endif %}
+</main>
+<script src="/static/btp.js?v={{ v }}"></script>
+</body>
+</html>

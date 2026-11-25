@@ -23,6 +23,7 @@ The interface is in French; this document describes what each page shows.
 | French in Canada | Outside Quebec, **1 million** people had French as their mother tongue in 2021, up 39 % since 1951, yet their share **halved** (7.3 % → 3.5 %) | 4 Statistics Canada tables, `PIVOT`, recomputed shares checked against published ones |
 | Language transmission | In New Brunswick, **89 %** of French mother-tongue speakers still mostly speak French at home, vs. 56 % in Ontario and 42 % in Manitoba | Language continuity index (home language ÷ mother tongue) |
 | Electricity | **28 % → 92 %** renewable electricity on Reunion Island between 2021 and 2024, CO₂ cut almost tenfold; the yearly peak hits in the austral summer (air conditioning) | 52,608 hourly EDF rows, time-zone trap fixed and tested, renewable share recomputed against the published one |
+| Construction (Reunion) | **6,022 public works contracts** on the island since 2019: **93 %** of the value goes to firms based on Reunion, the top 10 companies take **34 %**, and **16 %** of contracts drew a single bid (26 % under €100k) | Two DECP formats stacked (`UNION ALL BY NAME`), 1,204 SIRET numbers named through the SIRENE registry, shared framework-agreement ceilings counted once (`count(*) OVER`) |
 | Bilingualism | English-French bilingualism rose from 26 % to **46 %** in Quebec (1951-2021) but has stalled at about 10 % in the rest of Canada since 2001 | Time series by province |
 | Francophone immigration | **28,975** French-speaking permanent residents admitted outside Quebec in 2025 (×3.7 since 2019, 8.7 % of admissions vs. an 8.5 % target); **42 %** settled in Ottawa | 28,000 monthly IRCC rows, suppressed cells kept as NULL |
 | Choosing a city | Across 9 cities and 11 indicators (French, cost of living, jobs, quality of life), **Ottawa** ranks first with equal weights; **Moncton** takes the lead as soon as French counts double | Min-max scores (`UNPIVOT` + window functions), weights adjustable in the page |
@@ -126,7 +127,20 @@ Every chart has a **Table** button and a **SQL** button that opens its query.
 **Pipeline:** open-data API → raw CSV → **quality profile (Rust)** → SQL loading and cleaning (12 steps)
 → DuckDB analytical model (14 tables and views) → 18 named queries → Python use cases → JSON → ECharts.
 
-## 4. Rust: `datakit`
+## 4. Construction on Reunion Island (`/btp`)
+
+Who orders public works on the island, who wins them, against how many competitors, and how many homes get permits.
+
+- **Sources**: French public procurement open data (DECP), works contracts (CPV 45) performed in Reunion, in both regulatory
+  formats; the SIRENE business registry to name every buyer and contractor; Sitadel building permits (2017-2022).
+- **Traps handled**: SIRET numbers read as integers (leading zero lost), five spellings of the same procedure, a multi-award
+  framework agreement repeating its ceiling on every row (counted once, split between winners), one company signing from several
+  establishments (grouped by SIREN), full-text registry answers checked against the number searched.
+- **Outliers set apart**: four global design-build-operate contracts above €100M are shown in their own table instead of
+  distorting every ranking.
+- **Privacy**: company officers returned by the registry are never stored, and a sole trader is never named (tested).
+
+## 5. Rust: `datakit`
 
 A native binary (`rust/datakit`) called from Python through a local pipe. It touches no database: it receives its
 input and answers in JSON.
@@ -139,7 +153,7 @@ input and answers in JSON.
 A cross-test (pytest) proves the Rust and Python engines produce exactly the same anonymized text. The Python
 engine remains as a fallback (`PRIVACY_ENGINE=python`).
 
-## 5. Fleet & AI: predictive maintenance and privacy (`/parc`)
+## 6. Fleet & AI: predictive maintenance and privacy (`/parc`)
 
 Management of a fleet of vehicles and machinery (simulated data): risk score per asset, drift in failure intervals,
 and **the latest date to order parts by sea (30-45 days) or air freight (4-7 days)**. The AI writes the analysis of a
@@ -155,7 +169,7 @@ Raw text ──► Local masking (Rust) ──► Anonymized payload ──► L
 - **Known limit**: this is detection-based pseudonymization; an unknown proper noun matching no pattern would not be
   masked. Next step: a local named-entity recognition stage behind the same `Anonymizer` port.
 
-## 6. Earlier projects, revisited (`/projets`)
+## 7. Earlier projects, revisited (`/projets`)
 
 - **EV charging stations (Le Wagon final project, 2025).** 126,787 charging points opened in France from 2010 to
   2025 on 30,113 sites: an animated month-by-month map. Revisiting it, I counted the outliers instead of hiding them,

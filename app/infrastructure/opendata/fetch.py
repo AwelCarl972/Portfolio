@@ -8,6 +8,7 @@ import gzip
 import io
 import json
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
@@ -89,6 +90,79 @@ EDF_DATASETS: dict[str, str] = {
 }
 _AGENT = {"User-Agent": "opendata-fetch/1.0"}  # les deux serveurs rejettent l'agent par défaut « Python-urllib » (403)
 
+# Commande publique (DECP, data.economie.gouv.fr) : marchés de travaux (CPV 45) exécutés à La Réunion.
+# Deux formats réglementaires coexistent : l'arrêté de 2019 (jusqu'en 2023) et celui de 2022 (publié depuis 2024).
+DECP = "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/{ds}/exports/csv?"
+_DECP_COMMUN = ("id, acheteur_id, titulaire_id_1, titulaire_typeidentifiant_1, nature, objet, codecpv, procedure, "
+                "dureemois, datenotification, montant, formeprix, lieuexecution_code, lieuexecution_typecode")
+DECP_DATASETS: dict[str, tuple[str, str]] = {
+    "decp_arrete2019": ("decp-v3-marches-valides", _DECP_COMMUN),
+    "decp_arrete2022": ("decp-2022-marches-valides", _DECP_COMMUN + ", offresrecues, typegroupementoperateurs"),
+}
+_DECP_OU = "startswith(lieuexecution_code, '974') AND startswith(codecpv, '45')"
+
+# Répertoire SIRENE (recherche-entreprises.api.gouv.fr) : nom, taille et implantation des titulaires et des acheteurs.
+# Les dirigeants ne sont pas conservés, et un entrepreneur individuel n'est jamais nommé (c'est une personne).
+SIRENE = "https://recherche-entreprises.api.gouv.fr/search?per_page=1&q="
+SIRENE_CHAMPS = ["siret", "siren", "nom", "categorie", "nature_juridique", "naf", "section", "cp_etablissement", "dep_siege"]
+
+
+def _decp(name: str) -> bytes:
+    ds, select = DECP_DATASETS[name]
+    return _get(DECP.format(ds=ds) + urllib.parse.urlencode({"delimiter": ";", "select": select, "where": _DECP_OU}))
+
+
+def _sirets() -> list[str]:
+    """Identifiants SIRET (14 chiffres) des titulaires et des acheteurs, lus dans les deux fichiers DECP."""
+    vus: set[str] = set()
+    for name in DECP_DATASETS:
+        with open(RAW / f"{name}.csv", encoding="utf-8-sig", newline="") as f:
+            for row in csv.DictReader(f, delimiter=";"):
+                for col in ("titulaire_id_1", "acheteur_id"):
+                    v = (row[col] or "").strip()
+                    if v.isdigit() and len(v) in (13, 14):  # un SIRET lu comme nombre perd son zéro de tête
+                        vus.add(v.zfill(14))
+    return sorted(vus)
+
+
+def _sirene() -> bytes:
+    """Une requête par SIRET (7 par seconde au plus). Les réponses déjà obtenues sont gardées : relancer ne refait que le reste."""
+    import time
+    out_path = RAW / "sirene_decp.csv"
+    deja: dict[str, dict] = {}
+    if out_path.exists():
+        with open(out_path, encoding="utf-8", newline="") as f:
+            deja = {r["siret"]: r for r in csv.DictReader(f)}
+    lignes = []
+    for siret in _sirets():
+        if siret in deja:
+            lignes.append(deja[siret])
+            continue
+        time.sleep(0.16)
+        try:
+            res = json.loads(_get(SIRENE + siret)).get("results") or []
+        except urllib.error.HTTPError as e:
+            if e.code != 429:
+                raise
+            time.sleep(5)
+            res = json.loads(_get(SIRENE + siret)).get("results") or []
+        r = res[0] if res else {}
+        if r.get("siren") != siret[:9]:  # recherche plein texte : une autre entreprise peut répondre
+            lignes.append({"siret": siret})
+            continue
+        etab = next((e for e in r.get("matching_etablissements") or [] if e.get("siret") == siret), {})
+        individuel = (r.get("nature_juridique") or "").startswith("1")
+        lignes.append({"siret": siret, "siren": r.get("siren"),
+                       "nom": "(entrepreneur individuel)" if individuel else r.get("nom_raison_sociale") or r.get("nom_complet"),
+                       "categorie": r.get("categorie_entreprise"), "nature_juridique": r.get("nature_juridique"),
+                       "naf": r.get("activite_principale"), "section": r.get("section_activite_principale"),
+                       "cp_etablissement": etab.get("code_postal"), "dep_siege": (r.get("siege") or {}).get("departement")})
+    out = io.StringIO()
+    w = csv.DictWriter(out, fieldnames=SIRENE_CHAMPS, extrasaction="ignore", lineterminator="\n")
+    w.writeheader()
+    w.writerows(lignes)
+    return out.getvalue().encode("utf-8")
+
 # Recensement 2021 par ville (tableau 98-10-0192-01, 29 Mo zippé) : l'API web de Statistique Canada ne renvoie que les
 # cellules demandées. Coordonnée = géographie.genre.âge.langue_maison.première_langue_officielle (+ 5 zéros)
 WDS = "https://www150.statcan.gc.ca/t1/wds/rest/getDataFromCubePidCoordAndLatestNPeriods"
@@ -139,6 +213,10 @@ def _edf(dataset: str) -> bytes:
 
 
 def fetch(name: str) -> Path:
+    if name in DECP_DATASETS or name == "sirene_decp":
+        out = RAW / f"{name}.csv"
+        out.write_bytes(_decp(name) if name in DECP_DATASETS else _sirene())
+        return out
     if name in EDF_DATASETS:
         out = RAW / f"{name}.csv"
         out.write_bytes(_edf(EDF_DATASETS[name]))
@@ -171,6 +249,7 @@ def fetch(name: str) -> Path:
 
 if __name__ == "__main__":
     RAW.mkdir(parents=True, exist_ok=True)
-    for n in sys.argv[1:] or [*DATASETS, *FILES, *TABLES, *TABLES_GZ, *IRCC_FILES, "statcan_recensement_villes", *EDF_DATASETS]:
+    for n in sys.argv[1:] or [*DATASETS, *FILES, *TABLES, *TABLES_GZ, *IRCC_FILES, "statcan_recensement_villes", *EDF_DATASETS,
+                                *DECP_DATASETS, "sirene_decp"]:  # SIRENE en dernier : il lit les fichiers DECP
         p = fetch(n)
         print(f"{n:22} {p.stat().st_size / 1024:9.0f} Ko")

@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.application.use_cases.analyze_report import AnalyzeReport
+from app.application.use_cases.btp import BtpShowcase
 from app.application.use_cases.fleet_overview import FleetOverview
 from app.application.use_cases.energie import EnergieShowcase
 from app.application.use_cases.francophonie import FrancophonieShowcase
@@ -20,7 +21,7 @@ from app.application.use_cases.territory_dashboard import TerritoryDashboard
 from app.domain.rules import risk_level, status_label
 from app.domain.territory import REGIONS
 
-from .deps import get_analyze, get_energie, get_francophonie, get_overview, get_projets, get_store, get_territory
+from .deps import get_analyze, get_btp, get_energie, get_francophonie, get_overview, get_projets, get_store, get_territory
 from .quota import depuis_env
 
 app = FastAPI(title="ParcInsulaire")
@@ -161,6 +162,13 @@ def energie(request: Request, uc: Annotated[EnergieShowcase, Depends(get_energie
     if not uc.available():
         return templates.TemplateResponse(request, "energie.html", {"missing": True})
     return templates.TemplateResponse(request, "energie.html", {"missing": False, "page": jsonable_encoder(uc.page())})
+
+
+@app.get("/btp", response_class=HTMLResponse)
+def btp(request: Request, uc: Annotated[BtpShowcase, Depends(get_btp)]):
+    if not uc.available():
+        return templates.TemplateResponse(request, "btp.html", {"missing": True})
+    return templates.TemplateResponse(request, "btp.html", {"missing": False, "page": jsonable_encoder(uc.page())})
 
 
 @app.get("/francophonie", response_class=HTMLResponse)

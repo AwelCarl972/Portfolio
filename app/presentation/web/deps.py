@@ -6,6 +6,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from app.application.use_cases.analyze_report import AnalyzeReport
+from app.application.use_cases.btp import BtpShowcase
 from app.application.use_cases.fleet_overview import FleetOverview
 from app.application.use_cases.energie import EnergieShowcase
 from app.application.use_cases.francophonie import FrancophonieShowcase
@@ -18,6 +19,7 @@ from app.infrastructure.privacy.rust_engine import RustPseudonymizer
 from app.infrastructure.seed import seed_if_empty
 from app.infrastructure.sql.repository import (Database, DuckEntityCatalog, DuckFleetRepository,
                                                DuckMappingStore)
+from app.infrastructure.sql.btp_repository import DuckBtpRepository
 from app.infrastructure.sql.energie_repository import DuckEnergieRepository
 from app.infrastructure.sql.francophonie_repository import DuckFrancophonieRepository
 from app.infrastructure.sql.projets_repository import DuckProjetsRepository
@@ -33,6 +35,7 @@ class Container:
     projets: ProjetsShowcase
     francophonie: FrancophonieShowcase
     energie: EnergieShowcase
+    btp: BtpShowcase
 
 
 def _secret(data_dir: Path) -> bytes:
@@ -60,9 +63,11 @@ def container() -> Container:
     francophonie.load()  # tables fr_* : recensements canadiens 1951-2021 (Statistique Canada)
     energie = DuckEnergieRepository(db, db_path.parent / "raw")
     energie.load()  # tables en_* : électricité de La Réunion (open data EDF)
+    btp = DuckBtpRepository(db, db_path.parent / "raw")
+    btp.load()  # tables bt_* : commande publique de travaux (DECP + SIRENE) et permis de construire
     return Container(FleetOverview(repo), AnalyzeReport(repo, anonymizer, build_llm()), store,
                      TerritoryDashboard(territory), ProjetsShowcase(projets), FrancophonieShowcase(francophonie),
-                     EnergieShowcase(energie))
+                     EnergieShowcase(energie), BtpShowcase(btp))
 
 
 def get_territory() -> TerritoryDashboard:
@@ -79,6 +84,10 @@ def get_francophonie() -> FrancophonieShowcase:
 
 def get_energie() -> EnergieShowcase:
     return container().energie
+
+
+def get_btp() -> BtpShowcase:
+    return container().btp
 
 
 def get_overview() -> FleetOverview:
