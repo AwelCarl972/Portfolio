@@ -1,11 +1,15 @@
-"""Téléchargement des jeux open data de La Réunion (data.regionreunion.com, API Opendatasoft).
+"""Téléchargement des jeux open data : La Réunion (data.regionreunion.com, API Opendatasoft) et Statistique Canada.
 
 Filtrage et agrégation faits côté serveur (select / where / group_by) : on ne rapatrie que l'utile.
     python -m app.infrastructure.opendata.fetch
 """
+import gzip
+import io
+import json
 import sys
 import urllib.parse
 import urllib.request
+import zipfile
 from pathlib import Path
 
 BASE = "https://data.regionreunion.com/api/explore/v2.1/catalog/datasets"
@@ -51,7 +55,81 @@ FILES: dict[str, str] = {
 }
 
 
+# Statistique Canada, tableaux historiques des recensements (1951-2021) : archive zip, on n'en garde que le CSV
+STATCAN = "https://www150.statcan.gc.ca/n1/tbl/csv/{pid}-eng.zip"
+TABLES: dict[str, str] = {
+    "statcan_langue_maternelle": "15100031",   # langue maternelle, 1951-2021
+    "statcan_plos": "15100032",                # première langue officielle parlée, 1971-2021
+    "statcan_connaissance": "15100004",        # connaissance des langues officielles (bilinguisme), 1951-2021
+    "statcan_langue_maison": "15100033",       # langue parlée le plus souvent à la maison, 1971-2021
+}
+# Comparatif des villes : tableaux récents, recompressés en gzip (le revenu seul pèse 45 Mo décompressé)
+TABLES_GZ: dict[str, str] = {
+    "statcan_mbm": "11100066",          # seuils de la mesure du panier de consommation (MPC), 2002-2025
+    "statcan_loyers": "34100133",       # loyers moyens SCHL par ville et taille de logement, 1987-2025
+    "statcan_revenus": "11100190",      # revenu médian après impôt par type de famille, 1976-2024
+    "statcan_chomage_rmr": "14100385",  # enquête sur la population active, annuel par ville, 2006-2024
+    "statcan_criminalite": "35100026",  # indice de gravité de la criminalité, 1998-2025
+    "statcan_satisfaction": "13100843", # satisfaction à l'égard de la vie par province, 2021-2025
+}
+# Immigration, Réfugiés et Citoyenneté Canada : résidents permanents par ville de destination, mensuel depuis 2015
+IRCC = "https://www.ircc.canada.ca/opendata-donneesouvertes/data/"
+IRCC_FILES: dict[str, str] = {
+    "ircc_francophones_rmr": "ODP-French-speaking-PR-CMA.csv",  # résidents permanents d'expression française, hors Québec
+    "ircc_rp_rmr": "ODP-PR-PT_CMA.csv",                         # tous les résidents permanents
+}
+_AGENT = {"User-Agent": "opendata-fetch/1.0"}  # les deux serveurs rejettent l'agent par défaut « Python-urllib » (403)
+
+# Recensement 2021 par ville (tableau 98-10-0192-01, 29 Mo zippé) : l'API web de Statistique Canada ne renvoie que les
+# cellules demandées. Coordonnée = géographie.genre.âge.langue_maison.première_langue_officielle (+ 5 zéros)
+WDS = "https://www150.statcan.gc.ca/t1/wds/rest/getDataFromCubePidCoordAndLatestNPeriods"
+RECENSEMENT_PID = 98100192
+RECENSEMENT_GEOS = {24: "Moncton (CMA), N.B.", 12: "Halifax (CMA), N.S.", 86: "Ottawa - Gatineau (Ontario part) (CMA), Ont.",
+                    68: "Greater Sudbury (CMA), Ont.", 100: "Toronto (CMA), Ont.", 110: "Winnipeg (CMA), Man.",
+                    126: "Edmonton (CMA), Alta.", 123: "Calgary (CMA), Alta.", 166: "Vancouver (CMA), B.C."}
+RECENSEMENT_CELLULES = {  # (âge, langue de la maison, première langue officielle) : 1 = total ; âge 2 = 0-14 ans ; maison 5 = français ; PLOP 3 = français
+    "population": (1, 1, 1), "plop_fr": (1, 1, 3), "plop_fr_maison_fr": (1, 5, 3),
+    "enfants": (2, 1, 1), "enfants_plop_fr": (2, 1, 3),
+}
+
+
+def _recensement_villes() -> bytes:
+    demandes = [{"productId": RECENSEMENT_PID, "coordinate": f"{g}.1.{a}.{m}.{p}.0.0.0.0.0", "latestN": 1}
+                for g in RECENSEMENT_GEOS for a, m, p in RECENSEMENT_CELLULES.values()]
+    req = urllib.request.Request(WDS, data=json.dumps(demandes).encode(), headers={**_AGENT, "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=300) as r:
+        reponses = json.loads(r.read())
+    cle = {coord: (RECENSEMENT_GEOS[g], nom) for g in RECENSEMENT_GEOS for nom, (a, m, p) in RECENSEMENT_CELLULES.items()
+           for coord in [f"{g}.1.{a}.{m}.{p}.0.0.0.0.0"]}
+    lignes = ["geo,mesure,valeur"]
+    for rep in reponses:
+        o = rep["object"]
+        geo, mesure = cle[o["coordinate"]]
+        lignes.append(f'"{geo}",{mesure},{o["vectorDataPoint"][0]["value"]}')
+    return ("\n".join(lignes) + "\n").encode()
+
+
+def _get(url: str) -> bytes:
+    with urllib.request.urlopen(urllib.request.Request(url, headers=_AGENT), timeout=300) as r:
+        return r.read()
+
+
 def fetch(name: str) -> Path:
+    if name in TABLES or name in TABLES_GZ:
+        pid = TABLES.get(name) or TABLES_GZ[name]
+        with zipfile.ZipFile(io.BytesIO(_get(STATCAN.format(pid=pid)))) as z:
+            csv = z.read(f"{pid}.csv")  # le fichier _MetaData n'est pas chargé
+        out = RAW / f"{name}.csv" if name in TABLES else RAW / f"{name}.csv.gz"
+        out.write_bytes(csv if name in TABLES else gzip.compress(csv))
+        return out
+    if name in IRCC_FILES:
+        out = RAW / f"{name}.csv"
+        out.write_bytes(_get(IRCC + IRCC_FILES[name]))
+        return out
+    if name == "statcan_recensement_villes":
+        out = RAW / f"{name}.csv"
+        out.write_bytes(_recensement_villes())
+        return out
     if name in FILES:
         url, out = FILES[name], RAW / f"{name}.csv.gz"
     else:
@@ -65,6 +143,6 @@ def fetch(name: str) -> Path:
 
 if __name__ == "__main__":
     RAW.mkdir(parents=True, exist_ok=True)
-    for n in sys.argv[1:] or [*DATASETS, *FILES]:
+    for n in sys.argv[1:] or [*DATASETS, *FILES, *TABLES, *TABLES_GZ, *IRCC_FILES, "statcan_recensement_villes"]:
         p = fetch(n)
         print(f"{n:22} {p.stat().st_size / 1024:9.0f} Ko")

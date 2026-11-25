@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Francophonie canadienne — recensements, immigration, choix d'une ville</title>
+  <meta name="description" content="Le français au Canada hors Québec : 70 ans de recensements, l'immigration francophone depuis 2015 et un comparatif de 9 villes (coût de la vie, emploi, cadre de vie), analysés en SQL.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+  <link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github.min.css">
+  <link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
+  <link rel="stylesheet" href="/static/theme.css?v={{ v }}">
+  <style>
+    .lecture { border-left: 3px solid var(--s1); padding: 4px 0 4px 12px; font-size: 14px; }
+    table.simple { width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+    table.simple th { text-align: left; color: var(--text-secondary); font-weight: 500; border-bottom: 1px solid var(--grid); padding: 4px 6px; }
+    table.simple td { border-bottom: 1px solid var(--grid); padding: 4px 6px; }
+    table.simple td.n, table.simple th.n { text-align: right; }
+    .sql-box, .tbl-box { margin-top: 8px; }
+  </style>
+</head>
+<body class="viz-root">
+<header class="bg-slate-900 text-white px-4 sm:px-6 py-4">
+  <h1 class="text-xl font-bold">Francophonie canadienne <span class="text-sky-300 font-normal">· 70 ans de recensements, hors Québec</span></h1>
+  <p class="text-sm text-slate-300">Statistique Canada, SCHL, IRCC · recensements 1951-2021, immigration 2015-2026, 9 villes comparées → SQL DuckDB → ECharts</p>
+  <nav class="mt-2 text-sm"><a class="underline text-sky-300" href="/">Parc & IA</a> · <a class="underline text-sky-300" href="/observatoire">Observatoire Réunion</a> · <span class="font-semibold">Francophonie Canada</span> · <a class="underline text-sky-300" href="/projets">Projets</a> · <a class="underline text-sky-300" href="/cv">CV</a></nav>
+</header>
+
+<main class="max-w-7xl mx-auto px-3 py-4 sm:p-6 space-y-5">
+{% if missing %}
+  <div class="card"><h3>Données de Statistique Canada absentes</h3>
+    <p class="sub">Téléchargez-les (13 fichiers, 11 Mo) puis relancez le serveur :</p>
+    <pre class="text-sm">python -m app.infrastructure.opendata.fetch statcan_langue_maternelle statcan_plos statcan_connaissance statcan_langue_maison statcan_recensement_villes statcan_mbm statcan_loyers statcan_revenus statcan_chomage_rmr statcan_criminalite statcan_satisfaction ircc_francophones_rmr ircc_rp_rmr</pre></div>
+{% else %}
+  {% set k = page.kpis %}
+  {% macro n(v) %}{{ "{:,.0f}".format(v).replace(",", " ") }}{% endmacro %}
+  {% macro p(v, d=1) %}{{ ("%." ~ d ~ "f")|format(v)|replace(".", ",") }}{% endmacro %}
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="evolution" aria-selected="true">Évolution 1951-2021</button>
+    <button class="tab" role="tab" data-tab="vivre" aria-selected="false">Où vivre en français</button>
+    <button class="tab" role="tab" data-tab="immigration" aria-selected="false">Immigration depuis 2015</button>
+    <button class="tab" role="tab" data-tab="choisir" aria-selected="false">Choisir sa ville</button>
+    <button class="tab" role="tab" data-tab="donnees" aria-selected="false">Données & SQL</button>
+  </nav>
+
+  <!-- ============ Évolution ============ -->
+  <section role="tabpanel" id="tab-evolution" class="space-y-4">
+    <p class="lecture">Hors Québec, il y a <b>plus de francophones qu'en 1951</b> ({{ n(k.hq_mat_fr_1951) }} → {{ n(k.hq_mat_fr_2021) }}),
+      mais leur poids a été <b>divisé par deux</b> ({{ p(k.hq_pct_1951) }} % → {{ p(k.hq_pct_2021) }} %) : la population a grandi bien plus vite.
+      Le français tient là où il se parle encore à la maison, et c'est surtout le cas au Nouveau-Brunswick.</p>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="tile"><div class="tile-label">Francophones hors Québec</div><div class="tile-value">{{ p(k.hq_mat_fr_2021 / 1000000, 2) }} M</div>
+        <div class="tile-sub muted">langue maternelle, 2021 · {{ n(k.hq_plos_2021) }} en 1re langue officielle</div></div>
+      <div class="tile"><div class="tile-label">Part dans la population</div><div class="tile-value">{{ p(k.hq_pct_2021) }} %</div>
+        <div class="tile-sub muted">contre {{ p(k.hq_pct_1951) }} % en 1951</div></div>
+      <div class="tile"><div class="tile-label">Bilingues anglais-français</div><div class="tile-value">{{ p(k.hq_bil_2021) }} %</div>
+        <div class="tile-sub muted">hors Québec · {{ p(k.nb_bil_2021) }} % au Nouveau-Brunswick</div></div>
+      <div class="tile"><div class="tile-label">Transmission à la maison</div><div class="tile-value">{{ (k.nb_cont_2021 * 100)|round|int }} %</div>
+        <div class="tile-sub muted">au Nouveau-Brunswick · {{ (k.hq_cont_2021 * 100)|round|int }} % hors Québec</div></div>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="card" data-chart="paradoxe" data-sql="fr_paradoxe">
+        <h3>Plus nombreux, mais moins visibles</h3>
+        <p class="sub">Canada hors Québec · indice 100 = 1951 · effectif de langue maternelle française contre population totale</p>
+        <div class="chart"></div>
+      </div>
+      <div class="card" data-chart="haltere" data-sql="fr_haltere">
+        <h3>Le recul, province par province</h3>
+        <p class="sub">Part de langue maternelle française dans la population, 1951 (gris) → 2021 (bleu) · échelle logarithmique : un même écart horizontal = une même division</p>
+        <div class="chart"></div>
+      </div>
+      <div class="card" data-chart="variations" data-sql="fr_variations">
+        <h3>Qui gagne, qui perd, recensement après recensement</h3>
+        <p class="sub">Variation de l'effectif de langue maternelle française depuis le recensement précédent, en %</p>
+        <div class="chart chart-tall"></div>
+      </div>
+      <div class="card" data-chart="bilinguisme" data-sql="fr_bilinguisme">
+        <h3>Le bilinguisme progresse surtout au Québec</h3>
+        <p class="sub">Part de la population capable de soutenir une conversation en anglais et en français</p>
+        <div class="chart chart-tall"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Où vivre ============ -->
+  <section role="tabpanel" id="tab-vivre" class="space-y-4" hidden>
+    <p class="lecture">Pour une famille francophone qui s'installe hors Québec, deux questions comptent : <b>où sont les francophones</b>
+      (écoles, services, employeurs qui recrutent en français) et <b>si le français s'y transmet</b> aux enfants.</p>
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="card" data-chart="ou" data-sql="fr_ou">
+        <h3>Où vivent les francophones hors Québec</h3>
+        <p class="sub">Première langue officielle parlée : français · recensement 2021</p>
+        <div class="chart chart-tall"></div>
+      </div>
+      <div class="card" data-chart="continuite" data-sql="fr_continuite">
+        <h3>Où le français se transmet</h3>
+        <p class="sub">Indice de continuité : sur 100 personnes de langue maternelle française, combien parlent surtout français à la maison · 1971 (gris) → 2021 (bleu)</p>
+        <div class="chart chart-tall"></div>
+      </div>
+    </div>
+    <div class="card" data-chart="fiche" data-sql="fr_series">
+      <h3>Fiche province</h3>
+      <p class="sub">Quatre indicateurs en % de la population · la ligne grise reprend la langue maternelle pour l'ensemble hors Québec</p>
+      <div class="flex flex-wrap gap-2 mb-2" id="provinces"></div>
+      <div class="chart"></div>
+    </div>
+    <div class="card">
+      <h3>Ce que j'en retiens pour m'installer</h3>
+      <ul class="text-sm list-disc ml-5 space-y-1 mt-2">
+        <li><b>Nouveau-Brunswick</b> : près d'un tiers de la population est francophone et 89 % des francophones parlent français à la maison.
+          C'est le seul endroit hors Québec où un enfant grandit en français sans effort particulier.</li>
+        <li><b>Ontario</b> : plus de la moitié des francophones hors Québec y vivent (Ottawa, Sudbury, l'Est ontarien), donc le plus de postes
+          et d'écoles en français, mais près d'un francophone sur deux y parle surtout anglais à la maison.</li>
+        <li><b>Alberta et Colombie-Britannique</b> : depuis 1951, l'effectif francophone y a été multiplié par 2,2 et par 3,5, porté par
+          les arrivées d'autres provinces et de l'étranger. Mais la transmission y est parmi les plus faibles : le français y reste
+          une langue de communauté, pas de rue.</li>
+      </ul>
+      <p class="text-sm muted mt-3">Limites : le recensement mesure des déclarations, la dernière année est 2021, et une moyenne provinciale cache
+        des écarts entre villes (Moncton n'est pas Fredericton). Pour l'immigration elle-même, les règles changent souvent :
+        <a class="underline" href="https://www.canada.ca/fr/immigration-refugies-citoyennete/campagnes/immigration-francophone-hors-quebec.html">immigration francophone hors Québec (IRCC)</a>.</p>
+    </div>
+  </section>
+
+  <!-- ============ Immigration ============ -->
+  {% set ia = page.fr_immig_annuel %}
+  {% set complets = ia|selectattr("mois", "equalto", 12)|list %}
+  {% set dernier = complets|last %}{% set en_cours = ia|last %}
+  {% set a2019 = ia|selectattr("annee", "equalto", 2019)|first %}
+  {% set ott_i = page.fr_immig_villes|selectattr("ville", "equalto", "Ottawa")|first %}
+  <section role="tabpanel" id="tab-immigration" class="space-y-4" hidden>
+    <p class="lecture">Le recensement s'arrête en 2021 ; l'immigration dit ce qui se passe depuis. Le gouvernement fédéral a fait de l'immigration francophone
+      hors Québec une priorité chiffrée : en {{ dernier.annee }}, <b>{{ n(dernier.francophones) }} francophones</b> sont devenus résidents permanents
+      hors Québec, {{ p(dernier.francophones / a2019.francophones) }} fois plus qu'en 2019, et <b>{{ (100 * ott_i.n_dernier / dernier.francophones)|round|int }} %
+      ont choisi Ottawa</b>.</p>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="tile"><div class="tile-label">Francophones admis en {{ dernier.annee }}</div><div class="tile-value">{{ n(dernier.francophones) }}</div>
+        <div class="tile-sub muted">résidents permanents, hors Québec</div></div>
+      <div class="tile"><div class="tile-label">Part des admissions hors Québec</div><div class="tile-value">{{ p(dernier.part_pct) }} %</div>
+        <div class="tile-sub muted">cible fédérale {{ dernier.annee }} : {{ p((page.cibles|selectattr("annee", "equalto", dernier.annee)|first).cible_pct) }} %</div></div>
+      <div class="tile"><div class="tile-label">{{ en_cours.annee }}, janvier à {{ ["", "janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre"][en_cours.mois] }}</div><div class="tile-value">{{ p(en_cours.part_pct) }} %</div>
+        <div class="tile-sub muted">{{ n(en_cours.francophones) }} admis · cible {{ p((page.cibles|selectattr("annee", "equalto", en_cours.annee)|first).cible_pct) }} %</div></div>
+      <div class="tile"><div class="tile-label">Ottawa</div><div class="tile-value">{{ n(ott_i.n_dernier) }}</div>
+        <div class="tile-sub muted">francophones admis en {{ dernier.annee }}, ×{{ p(ott_i.multiplie_par) }} depuis 2019</div></div>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="card" data-chart="immig_annuel" data-sql="fr_immig_annuel">
+        <h3>Presque quadruplée depuis 2019</h3>
+        <p class="sub">Résidents permanents d'expression française admis hors Québec, par année · {{ en_cours.annee }} : {{ en_cours.mois }} premiers mois (barre claire)</p>
+        <div class="chart"></div>
+      </div>
+      <div class="card" data-chart="immig_part" data-sql="fr_immig_annuel">
+        <h3>Au-dessus des cibles, jusqu'en {{ dernier.annee }}</h3>
+        <p class="sub">Part des francophones dans toutes les admissions hors Québec (ligne) et cible du gouvernement fédéral (losanges)</p>
+        <div class="chart"></div>
+      </div>
+      <div class="card" data-chart="immig_prov" data-sql="fr_immig_prov">
+        <h3>Où vont les nouveaux arrivants francophones</h3>
+        <p class="sub">Francophones admis en {{ dernier.annee }} par province · étiquette = part des francophones parmi tous les arrivants de la province</p>
+        <div class="chart chart-tall"></div>
+      </div>
+      <div class="card" data-sql="fr_immig_villes">
+        <h3>Les dix villes qui en accueillent le plus</h3>
+        <p class="sub">Francophones admis en 2019 et en {{ dernier.annee }} · rapport calculé seulement au-delà de 50 arrivées en 2019</p>
+        <div style="overflow-x:auto"><table class="simple">
+          <thead><tr><th>Ville</th><th>Prov.</th><th class="n">2019</th><th class="n">{{ dernier.annee }}</th><th class="n">Évolution</th></tr></thead>
+          <tbody>{% for v in page.fr_immig_villes %}<tr><td>{{ v.ville }}</td><td>{{ v.province }}</td>
+            <td class="n">{{ n(v.n_2019) if v.n_2019 is not none else "–" }}</td><td class="n">{{ n(v.n_dernier) }}</td>
+            <td class="n">{{ "×" ~ p(v.multiplie_par) if v.multiplie_par is not none else "–" }}</td></tr>{% endfor %}</tbody>
+        </table></div>
+        <p class="text-sm muted mt-3">IRCC arrondit chaque effectif mensuel à 5 et masque les cellules de 1 à 4 personnes : additionnés, les mois donnent
+          {{ n((ia|selectattr("annee", "equalto", 2024)|first).francophones) }} admissions en 2024, contre 30 550 dans le bilan officiel (−2 %).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Choisir sa ville ============ -->
+  {% set cl = page.fr_villes_classement %}{% set vt = page.fr_villes_tableau %}
+  {% set ott = vt|selectattr("code", "equalto", "OTT")|first %}{% set mon = vt|selectattr("code", "equalto", "MON")|first %}
+  {% set sud = vt|selectattr("code", "equalto", "SUD")|first %}{% set tor = vt|selectattr("code", "equalto", "TOR")|first %}
+  {% set van = vt|selectattr("code", "equalto", "VAN")|first %}
+  <section role="tabpanel" id="tab-choisir" class="space-y-4" hidden>
+    <p class="lecture">Neuf villes où vivre en anglais ou en français hors Québec, comparées sur <b>11 indicateurs officiels</b> regroupés en quatre
+      piliers : francophonie, coût de la vie, emploi, cadre de vie. Chaque indicateur est ramené sur 100 (la meilleure des neuf villes = 100,
+      la moins bonne = 0). Les poids sont à vous : déplacez les curseurs.</p>
+    <div class="card" data-chart="classement" data-sql="fr_villes_classement">
+      <h3>Le classement selon vos priorités</h3>
+      <p class="sub">Note globale = moyenne pondérée des piliers · chaque barre montre ce que chaque pilier apporte</p>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-2 my-2" id="poids"></div>
+      <div class="chart chart-tall"></div>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="card" data-chart="parallele" data-sql="fr_villes_notes_q">
+        <h3>Le parallèle, indicateur par indicateur</h3>
+        <p class="sub">Une ligne par ville · chaque axe est orienté pour que <b>le haut soit toujours le mieux</b> (axes marqués ↓ inversés : loyer, panier, chômage, criminalité) · choisissez jusqu'à 4 villes</p>
+        <div class="flex flex-wrap gap-2" id="villes-sel"></div>
+        <div class="chart chart-tall"></div>
+      </div>
+      <div class="card" data-chart="arbitrage" data-sql="fr_villes_classement">
+        <h3>L'arbitrage : vivre en français ou vivre moins cher</h3>
+        <p class="sub">Note francophonie (horizontal) contre note coût de la vie (vertical) · taille = note emploi</p>
+        <div class="chart chart-tall"></div>
+      </div>
+    </div>
+    <div class="card" data-sql="fr_villes_tableau">
+      <h3>Les valeurs brutes</h3>
+      <p class="sub">Dernière année publiée par chaque source · <span class="badge">prov.</span> = la source ne descend pas à la ville, valeur de la province
+        (ou de la taille de ville pour le panier de Sudbury)</p>
+      <div style="overflow-x:auto"><table class="simple">
+        <thead><tr><th>Ville</th><th class="n">Francophones</th><th class="n">Français à la maison</th><th class="n">Enfants francophones</th>
+          <th class="n">Arrivants francophones</th><th class="n">Loyer 2 ch.</th><th class="n">Panier famille de 4</th><th class="n">Revenu couples + enfants</th>
+          <th class="n">Chômage</th><th class="n">Criminalité</th><th class="n">Très satisfaits</th></tr></thead>
+        <tbody>{% for v in cl %}{% set r = vt|selectattr("code", "equalto", v.code)|first %}<tr>
+          <td><b>{{ r.nom }}</b> <span class="muted">{{ r.province }}</span></td>
+          <td class="n">{{ p(r.plop_fr_pct) }} %</td><td class="n">{{ p(r.maison_fr_pct, 0) }} %</td><td class="n">{{ p(r.enfants_fr_pct) }} %</td>
+          <td class="n">{{ p(r.part_fr_arrivees) }} %</td><td class="n">{{ n(r.loyer) }} $</td>
+          <td class="n">{{ n(r.mpc) }} ${% if r.niveau_mpc != "ville" %} <span class="badge">prov.</span>{% endif %}</td>
+          <td class="n">{{ n(r.revenu) }} ${% if r.niveau_revenu != "ville" %} <span class="badge">prov.</span>{% endif %}</td>
+          <td class="n">{{ p(r.chomage) }} %</td><td class="n">{{ p(r.criminalite, 0) }}</td><td class="n">{{ p(r.satisfaction, 0) }} % <span class="badge">prov.</span></td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+      <p class="text-sm muted mt-2">Années : recensement 2021 · arrivants {{ ott.an_arrivees }} · loyers SCHL octobre {{ ott.an_loyer }} · panier (MPC, base 2023) {{ ott.an_mpc }} ·
+        revenu {{ ott.an_revenu }} · chômage {{ ott.an_chomage }} · criminalité {{ ott.an_criminalite }} (Canada : 75) · satisfaction {{ ott.an_satisfaction }}.</p>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="card">
+        <h3>Ce que je retiens pour ma famille</h3>
+        <ul class="text-sm list-disc ml-5 space-y-2 mt-2">
+          <li><b>Ottawa arrive en tête à poids égaux.</b> C'est la ville la plus sûre des neuf (criminalité {{ p(ott.criminalite, 0) }}),
+            le revenu des familles le plus haut ({{ n(ott.revenu) }} $ après impôt) et le premier pôle d'arrivée des francophones.
+            Avec {{ p(ott.plop_fr_pct) }} % de francophones, soit {{ n(ott.francophones) }} personnes, l'école et les services en français y sont courants.</li>
+          <li><b>Moncton gagne dès que la francophonie compte double.</b> {{ p(mon.plop_fr_pct) }} % de francophones, {{ p(mon.enfants_fr_pct, 0) }} % des
+            enfants, {{ p(mon.maison_fr_pct, 0) }} % des francophones qui parlent surtout français chez eux, et le loyer le plus bas ({{ n(mon.loyer) }} $). Le revers :
+            un indice de criminalité de {{ p(mon.criminalite, 0) }}, au-dessus de la moyenne canadienne, et un marché de l'emploi plus petit.</li>
+          <li><b>Grand Sudbury est la surprise</b> : {{ p(sud.plop_fr_pct) }} % de francophones et la meilleure note sur le coût de la vie,
+            mais son revenu et son panier sont ceux de l'Ontario, ce qui la flatte un peu.</li>
+          <li><b>Toronto et Vancouver sortent derniers ou presque</b> malgré leurs salaires : loyer de {{ n(tor.loyer) }} $ et {{ n(van.loyer) }} $,
+            et moins de 2 % de francophones.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Pourquoi c'est utile à un employeur</h3>
+        <p class="text-sm mt-2">Un recrutement à l'international coûte cher et échoue souvent pour une raison simple : la famille ne s'installe pas.
+          Mon choix de ville ne repose pas sur une impression, mais sur une analyse que vous pouvez relire, critiquer et refaire avec vos poids.</p>
+        <p class="text-sm mt-2">C'est aussi le travail que je ferais chez vous : réunir des sources qui ne se parlent pas (Statistique Canada, SCHL, IRCC),
+          aligner leurs géographies, signaler ce qui manque, et rendre une réponse lisible en deux minutes.</p>
+        <p class="text-sm muted mt-3"><b>Limites</b> : le chômage dit peu du marché propre aux analystes de données ; la satisfaction et une partie
+          des revenus sont provinciaux ; une note min-max dépend des villes comparées (en ajouter une change les notes des autres).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Données & SQL ============ -->
+  <section role="tabpanel" id="tab-donnees" class="space-y-4" hidden>
+    <div class="flow">
+      <div class="flow-step"><b>1 · Téléchargement</b>10 tableaux Statistique Canada (zip ou API web), 2 fichiers IRCC</div><div class="flow-arrow">→</div>
+      <div class="flow-step"><b>2 · Empilement</b><code class="inline">fr_brut</code>, <code class="inline">fr_ircc</code> : un format long par famille de sources</div><div class="flow-arrow">→</div>
+      <div class="flow-step"><b>3 · Nettoyage</b>libellés, effectifs, réponses réparties, cellules masquées gardées à NULL</div><div class="flow-arrow">→</div>
+      <div class="flow-step"><b>4 · Indicateurs</b><code class="inline">PIVOT</code>, parts recalculées, <code class="inline">arg_max</code> du dernier millésime par ville</div><div class="flow-arrow">→</div>
+      <div class="flow-step"><b>5 · Notes</b><code class="inline">UNPIVOT</code> + min-max par fenêtre, sens de chaque indicateur</div><div class="flow-arrow">→</div>
+      <div class="flow-step"><b>6 · Contrôle et restitution</b>recalcul confronté au publié · 14 requêtes nommées → JSON → ECharts</div>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="card"><h3>Sources</h3>
+        <table class="simple"><thead><tr><th>Fichier</th><th>Tableau</th><th class="n">Lignes</th><th class="n">Ko</th></tr></thead><tbody>
+        {% set tableaux = {"statcan_langue_maternelle": ("15100031", "Langue maternelle, 1951-2021"),
+                           "statcan_plos": ("15100032", "Première langue officielle parlée, 1971-2021"),
+                           "statcan_connaissance": ("15100004", "Connaissance des langues officielles, 1951-2021"),
+                           "statcan_langue_maison": ("15100033", "Langue parlée le plus souvent à la maison, 1971-2021"),
+                           "statcan_recensement_villes": ("98100192", "Recensement 2021 par ville : 45 cellules lues par l'API"),
+                           "statcan_mbm": ("11100066", "Mesure du panier de consommation (coût d'un niveau de vie de base)"),
+                           "statcan_loyers": ("34100133", "Loyers moyens SCHL par ville et taille de logement"),
+                           "statcan_revenus": ("11100190", "Revenu après impôt par type de famille"),
+                           "statcan_chomage_rmr": ("14100385", "Population active par ville, annuel"),
+                           "statcan_criminalite": ("35100026", "Indice de gravité de la criminalité"),
+                           "statcan_satisfaction": ("13100843", "Satisfaction à l'égard de la vie, par province"),
+                           "ircc_francophones_rmr": ("", "IRCC · résidents permanents d'expression française, par ville, mensuel"),
+                           "ircc_rp_rmr": ("", "IRCC · tous les résidents permanents, par ville, mensuel")} %}
+        {% for s in page.sources %}{% set pid, titre = tableaux[s.fichier.split(".")[0]] %}
+          <tr><td><code class="inline">{{ s.fichier }}</code></td>
+            <td>{% if pid %}<a class="underline" href="https://www150.statcan.gc.ca/t1/tbl1/fr/tv.action?pid={{ pid }}01">{{ pid[:2] }}-{{ pid[2:4] }}-{{ pid[4:] }}-01</a>{% else %}<a class="underline" href="https://ouvert.canada.ca/data/fr/dataset/f7e5498e-0ad8-4417-85c9-9b8aff9b9eda">IRCC</a>{% endif %} · {{ titre }}</td>
+            <td class="n">{{ n(s.lignes) }}</td><td class="n">{{ s.ko }}</td></tr>{% endfor %}
+        </tbody></table></div>
+      <div class="card" data-sql="fr_qualite"><h3>Du brut au retenu</h3>
+        <table class="simple"><tbody>{% for q in page.fr_qualite %}
+          <tr><td>{{ q.etape }}</td><td class="n">{{ n(q.valeur) if q.valeur % 1 == 0 else p(q.valeur, 2) }}</td></tr>{% endfor %}
+        </tbody></table>
+        <p class="text-sm mt-3"><b>Règles de nettoyage</b></p>
+        <ul class="text-sm list-disc ml-5 muted">
+          <li>un tableau écrit « Saskatchewan » suivi d'une espace : sans <code class="inline">trim</code>, la province disparaît en silence de la jointure ;</li>
+          <li>seuls les effectifs sont chargés, les parts sont recalculées puis comparées aux parts publiées (écart dû aux arrondis à une décimale) ;</li>
+          <li>les réponses multiples (« anglais et français ») existent depuis 1991 : la version « répartie » de Statistique Canada garde les séries comparables depuis 1951 ;</li>
+          <li>avant 1999, le Nunavut est compté avec les Territoires du Nord-Ouest : la ligne est gardée à part, jamais additionnée aux deux autres ;</li>
+          <li>IRCC arrondit à 5 et masque les cellules de 1 à 4 : elles restent à NULL (jamais remplacées par 0 ou 2,5), et un rapport n'est calculé
+            qu'au-delà de 50 arrivées ;</li>
+          <li>chaque source nomme les villes à sa façon (« Ottawa-Gatineau, Ontario part », « Ottawa - Gatineau (Ontario part) »…) : la
+            correspondance est écrite une fois, dans le domaine, avec le niveau réellement disponible (ville ou province).</li>
+        </ul>
+      </div>
+    </div>
+    <h3 class="font-semibold">Chargement et nettoyage</h3>
+    {% for name, q in page.sql.items() if q.etape %}
+    <details class="sql" id="sql-{{ name }}"><summary><b>{{ name }}</b> <span class="muted text-sm">{{ q.description }}</span></summary>
+      <pre class="code"><code class="language-sql">{{ q.sql }}</code></pre></details>{% endfor %}
+    <h3 class="font-semibold">Requêtes de la page</h3>
+    {% for name, q in page.sql.items() if not q.etape %}
+    <details class="sql" id="sql-{{ name }}"><summary><b>{{ name }}</b> <span class="muted text-sm">{{ q.description }}</span></summary>
+      <pre class="code"><code class="language-sql">{{ q.sql }}</code></pre></details>{% endfor %}
+  </section>
+  <script type="application/json" id="page-data">{{ page|tojson }}</script>
+{% endif %}
+</main>
+<script src="/static/francophonie.js?v={{ v }}"></script>
+</body>
+</html>

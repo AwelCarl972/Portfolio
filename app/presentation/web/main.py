@@ -11,12 +11,13 @@ from fastapi.templating import Jinja2Templates
 
 from app.application.use_cases.analyze_report import AnalyzeReport
 from app.application.use_cases.fleet_overview import FleetOverview
+from app.application.use_cases.francophonie import FrancophonieShowcase
 from app.application.use_cases.projets import ProjetsShowcase
 from app.application.use_cases.territory_dashboard import TerritoryDashboard
 from app.domain.rules import risk_level, status_label
 from app.domain.territory import REGIONS
 
-from .deps import get_analyze, get_overview, get_projets, get_store, get_territory
+from .deps import get_analyze, get_francophonie, get_overview, get_projets, get_store, get_territory
 from .quota import depuis_env
 
 app = FastAPI(title="ParcInsulaire")
@@ -127,3 +128,12 @@ def projets_donnees(uc: Annotated[ProjetsShowcase, Depends(get_projets)], name: 
         return jsonable_encoder(uc.donnees(name))
     except ValueError as e:
         raise HTTPException(404, str(e))
+
+
+# --- Francophonie canadienne : recensements 1951-2021 (Statistique Canada) ---------------------------------
+
+@app.get("/francophonie", response_class=HTMLResponse)
+def francophonie(request: Request, uc: Annotated[FrancophonieShowcase, Depends(get_francophonie)]):
+    if not uc.available():
+        return templates.TemplateResponse(request, "francophonie.html", {"missing": True})
+    return templates.TemplateResponse(request, "francophonie.html", {"missing": False, "page": jsonable_encoder(uc.page())})
