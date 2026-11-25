@@ -1,0 +1,42 @@
+/// Au pas horaire, EDF regroupe les filières autrement qu'au bilan annuel
+table FiliereHoraire
+	lineageTag: 9d1d6e65-d371-4f35-9b3b-170f1a3ec53d
+
+	column Filière
+		dataType: string
+		lineageTag: 4453ae54-ad24-4601-9aa9-f4d2ceaa97e7
+		summarizeBy: none
+		sourceColumn: Filière
+		sortByColumn: Ordre
+
+	column 'Colonne API'
+		dataType: string
+		isHidden
+		lineageTag: 5364f4b0-b31a-4929-8f0a-2fda4da7e275
+		summarizeBy: none
+		sourceColumn: Colonne API
+
+	column Ordre
+		dataType: int64
+		isHidden
+		lineageTag: 01beb673-755e-4d1c-9f2f-3ea34b25e7cd
+		summarizeBy: none
+		sourceColumn: Ordre
+
+	partition FiliereHoraire = m
+		mode: import
+		source =
+				let
+				    Source = #table(type table [#"Filière" = text, #"Colonne API" = text, Ordre = Int64.Type], {
+				    {"Thermique (fioul puis biomasse liquide)", "thermique_mw", 0},
+				    {"Bagasse / charbon", "bagasse_charbon_mw", 1},
+				    {"Hydraulique", "hydraulique_mw", 2},
+				    {"Solaire", "photovoltaique_mw", 3},
+				    {"Éolien", "eolien_mw", 4},
+				    {"Biogaz", "bioenergies_mw", 5}
+				    })
+				in
+				    Source
+
+	annotation PBI_ResultType = Table
+

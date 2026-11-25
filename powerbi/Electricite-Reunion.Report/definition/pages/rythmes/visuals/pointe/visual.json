@@ -1,0 +1,101 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.4.0/schema.json",
+  "name": "pointe",
+  "position": {
+    "x": 656,
+    "y": 446,
+    "z": 0,
+    "width": 600,
+    "height": 258,
+    "tabOrder": 5116
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Horaire"
+                    }
+                  },
+                  "Property": "Année"
+                }
+              },
+              "queryRef": "Horaire.Année",
+              "nativeQueryRef": "Année"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Horaire"
+                    }
+                  },
+                  "Property": "Pointe (MW)"
+                }
+              },
+              "queryRef": "Horaire.Pointe (MW)",
+              "nativeQueryRef": "Pointe (MW)"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Horaire"
+                    }
+                  },
+                  "Property": "Puissance moyenne (MW)"
+                }
+              },
+              "queryRef": "Horaire.Puissance moyenne (MW)",
+              "nativeQueryRef": "Puissance moyenne (MW)"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Pointe et moyenne par année (MW)'"
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "12D"
+                }
+              }
+            },
+            "bold": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

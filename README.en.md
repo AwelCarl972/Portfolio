@@ -94,6 +94,19 @@ tenfold. Four tabs: **The switch 2018-2024 · One day, two seasons · Who consum
 - **Cross-checked figures**: renewable share recomputed within 0.04 points of EDF's, hourly totals compared with the
   annual report, one duplicate and one missing hour reported rather than filled in.
 
+### Power BI version (`powerbi/`)
+
+The same analysis in Power BI Desktop, saved as a project (PBIP: **TMDL** model, **PBIR** report), so it can be
+reviewed and versioned like code. Three pages, exported to PDF and shown in the "Version Power BI" tab of `/energie`.
+
+- **Power Query** reads EDF's API live: pagination with `List.Generate`, URL built with `RelativePath` and `Query`
+  (refreshable in the service), time zone fixed with `DateTimeZone.ToUtc`.
+- **Star schema**: yearly, hourly and consumption facts; source, year and municipality dimensions.
+- **16 DAX measures**: recomputed renewable share, dynamic "latest year" (`REMOVEFILTERS`, variables), hourly peak
+  (`MAXX`), consumption per household.
+
+Open `powerbi/Electricite-Reunion.pbip` in Power BI Desktop, then *Refresh* (anonymous access to the public API).
+
 ## 3. Reunion Island observatory (`/observatoire`)
 
 A 6-tab dashboard: **Real estate · Road safety · Employment & housing · Climate · Correlations · Data & SQL**.

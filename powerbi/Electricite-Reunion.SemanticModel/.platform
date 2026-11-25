@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "Electricite-Reunion"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "5f045a6b-6ead-4a7e-8408-3481003443e0"
+  }
+}

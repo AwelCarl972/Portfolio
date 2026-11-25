@@ -1,0 +1,56 @@
+/// Émissions directes de CO2 de la production d'électricité, en milliers de tonnes
+table Emissions
+	lineageTag: 9541a45e-0e33-4acf-b975-9d8a4c2025c6
+
+	measure 'CO2 (kt)' = SUM(Emissions[kt CO2])
+		formatString: #,0
+		displayFolder: Émissions
+		lineageTag: 7a7238a2-6a66-4c11-a1bd-e030cc36d81f
+
+	measure 'CO2 (kt, dernière année)' =
+			VAR an = [Dernière année]
+			RETURN CALCULATE([CO2 (kt)], REMOVEFILTERS(Annee), Annee[Année] = an)
+		formatString: #,0
+		displayFolder: Émissions
+		lineageTag: 0b3cb3e5-388f-44d2-905a-57e3fa270a6e
+
+	measure 'CO2 évolution depuis 2021' =
+			VAR avant = CALCULATE([CO2 (kt)], REMOVEFILTERS(Annee), Annee[Année] = 2021)
+			RETURN DIVIDE([CO2 (kt, dernière année)], avant) - 1
+		formatString: +0 %;-0 %;0 %
+		displayFolder: Émissions
+		lineageTag: 71e7978b-fc7a-4017-8eda-24a4d81405b9
+
+	column Année
+		dataType: int64
+		formatString: 0
+		lineageTag: 9cc72a78-f7e9-4cad-ac97-77fd01e6529a
+		summarizeBy: none
+		sourceColumn: Année
+
+	column 'kt CO2'
+		dataType: double
+		formatString: #,0
+		lineageTag: 6326b368-8b37-48e9-813c-70801970e867
+		summarizeBy: sum
+		sourceColumn: kt CO2
+
+	partition Emissions = m
+		mode: import
+		source =
+				let
+				    Csv = (jeu as text) as table =>
+				        let
+				            Brut = Web.Contents(UrlApi, [RelativePath = jeu & "/lines", Query = [size = "10000", format = "csv"]]),
+				            Doc = Csv.Document(Brut, [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv])
+				        in
+				            Table.PromoteHeaders(Doc, [PromoteAllScalars = true]),
+				    Source = Csv("zmuebeju721pnwjf7g6m1cdg"),
+				    Gardees = Table.SelectColumns(Source, {"annee", "emissions_realisees_kt"}),
+				    Typees = Table.TransformColumnTypes(Gardees, {{"annee", Int64.Type}, {"emissions_realisees_kt", type number}}, "en-US"),
+				    Renommees = Table.RenameColumns(Typees, {{"annee", "Année"}, {"emissions_realisees_kt", "kt CO2"}})
+				in
+				    Renommees
+
+	annotation PBI_ResultType = Table
+

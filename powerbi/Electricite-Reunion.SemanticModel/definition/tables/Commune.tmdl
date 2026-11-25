@@ -1,0 +1,63 @@
+/// EDF écrit les communes en capitales sans accents : on joint par code INSEE
+table Commune
+	lineageTag: e4102dea-869a-407c-8ff9-b038ddd9a04f
+
+	column 'Code INSEE'
+		dataType: string
+		lineageTag: 543af0bd-03b9-45f2-98da-f79852bc4b87
+		summarizeBy: none
+		sourceColumn: Code INSEE
+
+	column Commune
+		dataType: string
+		lineageTag: 7cc99e25-150b-45db-a8f5-8a9bcb80d36c
+		summarizeBy: none
+		sourceColumn: Commune
+
+	column Micro-région
+		dataType: string
+		lineageTag: db266b75-c46b-4eaf-ad0d-07478b72178a
+		summarizeBy: none
+		sourceColumn: Micro-région
+
+	column Hauts
+		dataType: boolean
+		lineageTag: 823b51cc-d2dd-4047-9652-45307d69750f
+		summarizeBy: none
+		sourceColumn: Hauts
+
+	partition Commune = m
+		mode: import
+		source =
+				let
+				    Source = #table(type table [#"Code INSEE" = text, Commune = text, #"Micro-région" = text, Hauts = logical], {
+				    {"97401", "Les Avirons", "Sud", false},
+				    {"97402", "Bras-Panon", "Est", false},
+				    {"97403", "Entre-Deux", "Sud", false},
+				    {"97404", "L'Étang-Salé", "Sud", false},
+				    {"97405", "Petite-Île", "Sud", false},
+				    {"97406", "La Plaine-des-Palmistes", "Est", true},
+				    {"97407", "Le Port", "Ouest", false},
+				    {"97408", "La Possession", "Ouest", false},
+				    {"97409", "Saint-André", "Est", false},
+				    {"97410", "Saint-Benoît", "Est", false},
+				    {"97411", "Saint-Denis", "Nord", false},
+				    {"97412", "Saint-Joseph", "Sud", false},
+				    {"97413", "Saint-Leu", "Ouest", false},
+				    {"97414", "Saint-Louis", "Sud", false},
+				    {"97415", "Saint-Paul", "Ouest", false},
+				    {"97416", "Saint-Pierre", "Sud", false},
+				    {"97417", "Saint-Philippe", "Sud", false},
+				    {"97418", "Sainte-Marie", "Nord", false},
+				    {"97419", "Sainte-Rose", "Est", false},
+				    {"97420", "Sainte-Suzanne", "Nord", false},
+				    {"97421", "Salazie", "Est", true},
+				    {"97422", "Le Tampon", "Sud", false},
+				    {"97423", "Les Trois-Bassins", "Ouest", false},
+				    {"97424", "Cilaos", "Sud", true}
+				    })
+				in
+				    Source
+
+	annotation PBI_ResultType = Table
+

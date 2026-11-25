@@ -1,0 +1,21 @@
+/// Années communes au bilan de production et aux émissions
+table Annee
+	lineageTag: 132f240d-5ef4-469d-ab8a-bf40eda7f296
+
+	column Année
+		dataType: int64
+		formatString: 0
+		lineageTag: b8b9c8f1-b000-4b1a-95b1-834ef008f327
+		summarizeBy: none
+		sourceColumn: Année
+
+	partition Annee = m
+		mode: import
+		source =
+				let
+				    Source = Table.FromList({2014..2024}, Splitter.SplitByNothing(), type table [#"Année" = Int64.Type])
+				in
+				    Source
+
+	annotation PBI_ResultType = Table
+

@@ -2,7 +2,7 @@
 
 *[English version](README.en.md)*
 
-**Portfolio Data Analyst · La Réunion** — SQL avancé · Rust · Python · tableaux de bord web sans licence BI
+**Portfolio Data Analyst · La Réunion** — SQL avancé · Power BI · Rust · Python · tableaux de bord web sans licence BI
 
 > 8 jeux de données publiques réunionnaises (immobilier, emploi, sécurité routière, climat) :
 > téléchargés, profilés, nettoyés, modélisés et restitués, **avec chaque ligne de SQL visible dans l'interface.**
@@ -88,6 +88,20 @@ Qui consomme · Données & SQL**.
 ```powershell
 python -m app.infrastructure.opendata.fetch edf_horaire edf_annuel edf_co2 edf_conso
 ```
+
+### Version Power BI (`powerbi/`)
+
+La même analyse dans Power BI Desktop, enregistrée au format projet (PBIP : modèle **TMDL**, rapport **PBIR**),
+donc relisible et versionnée comme du code. Trois pages, exportées en PDF et visibles dans l'onglet
+« Version Power BI » de `/energie`.
+
+- **Power Query** lit l'API d'EDF en direct : pagination suivie avec `List.Generate`, adresse construite avec
+  `RelativePath` et `Query` (actualisable dans le service), fuseau horaire corrigé par `DateTimeZone.ToUtc`.
+- **Modèle en étoile** : faits annuels, horaires et de consommation ; dimensions filière, année, commune.
+- **16 mesures DAX** : part renouvelable recalculée, « dernière année » dynamique (`REMOVEFILTERS`, variables),
+  pointe horaire (`MAXX`), consommation par foyer.
+
+Ouvrir `powerbi/Electricite-Reunion.pbip` dans Power BI Desktop, puis *Actualiser* (accès anonyme à l'API publique).
 
 ## 3. Francophonie canadienne (`/francophonie`)
 

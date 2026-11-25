@@ -1,0 +1,94 @@
+/// Bilan annuel validé d'EDF, une ligne par année et par filière (source : jeu bgsxf72q0jmza3q4ed6qon2n)
+table ProductionAnnuelle
+	lineageTag: 31dbed39-f88f-4c7d-8205-44bdb5e80c44
+
+	measure 'Production (GWh)' = DIVIDE(SUM(ProductionAnnuelle[MWh]), 1000)
+		formatString: #,0
+		displayFolder: Production
+		lineageTag: 0def2ad7-a9c3-47f0-ad7e-56b4eb1524a5
+
+	measure 'Production renouvelable (GWh)' = CALCULATE([Production (GWh)], Filiere[Renouvelable] = TRUE())
+		formatString: #,0
+		displayFolder: Production
+		lineageTag: 815c738f-d83e-42a8-8e43-43c648aa5b82
+
+	/// Recalculée depuis les filières : colle à la part publiée par EDF à 0,04 point près
+	measure 'Part renouvelable' = DIVIDE([Production renouvelable (GWh)], [Production (GWh)])
+		formatString: 0.0 %;-0.0 %;0.0 %
+		displayFolder: Production
+		lineageTag: cf226811-acdf-4eb1-b4b4-ad04e6a5245b
+
+	measure 'Dernière année' = CALCULATE(MAX(ProductionAnnuelle[Année]), REMOVEFILTERS())
+		formatString: 0
+		displayFolder: Production
+		lineageTag: 2211f78e-323c-4e0d-b91c-d27130a7d4d1
+
+	measure 'Part renouvelable (dernière année)' =
+			VAR an = [Dernière année]
+			RETURN CALCULATE([Part renouvelable], REMOVEFILTERS(Annee), Annee[Année] = an)
+		formatString: 0.0 %;-0.0 %;0.0 %
+		displayFolder: Production
+		lineageTag: 655b072e-b6d1-4b7f-b0a1-ed39406c751a
+
+	/// Dernière année « d'avant » la conversion des centrales
+	measure 'Part renouvelable 2021' = CALCULATE([Part renouvelable], REMOVEFILTERS(Annee), Annee[Année] = 2021)
+		formatString: 0.0 %;-0.0 %;0.0 %
+		displayFolder: Production
+		lineageTag: edc91d47-aeba-4f17-bcdc-f65e60532085
+
+	measure 'Charbon (GWh, dernière année)' =
+			VAR an = [Dernière année]
+			RETURN CALCULATE([Production (GWh)], REMOVEFILTERS(Annee), Annee[Année] = an, Filiere[Code] = "charbon")
+		formatString: #,0
+		displayFolder: Production
+		lineageTag: 022a6b97-9ccf-4876-a69c-613ebae7c76a
+
+	measure 'Production totale (TWh, dernière année)' =
+			VAR an = [Dernière année]
+			RETURN CALCULATE([Production (GWh)] / 1000, REMOVEFILTERS(Annee), Annee[Année] = an)
+		formatString: 0.00
+		displayFolder: Production
+		lineageTag: 010c63ad-06c8-46f7-8a37-88af17c65565
+
+	column Année
+		dataType: int64
+		formatString: 0
+		lineageTag: 6f88a237-7613-4d16-99fd-ee5d6aa8eae8
+		summarizeBy: none
+		sourceColumn: Année
+
+	column 'Code filière'
+		dataType: string
+		isHidden
+		lineageTag: efb0f018-4a40-469b-b1fc-7556568af5a7
+		summarizeBy: none
+		sourceColumn: Code filière
+
+	column MWh
+		dataType: double
+		formatString: #,0
+		lineageTag: 713bb82d-3188-45aa-91b0-5c3b8a89c77e
+		summarizeBy: sum
+		sourceColumn: MWh
+
+	partition ProductionAnnuelle = m
+		mode: import
+		source =
+				let
+				    Csv = (jeu as text) as table =>
+				        let
+				            Brut = Web.Contents(UrlApi, [RelativePath = jeu & "/lines", Query = [size = "10000", format = "csv"]]),
+				            Doc = Csv.Document(Brut, [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv])
+				        in
+				            Table.PromoteHeaders(Doc, [PromoteAllScalars = true]),
+				    Source = Csv("bgsxf72q0jmza3q4ed6qon2n"),
+				    Filieres = {"charbon", "moteurs_diesel", "turbines_a_combustion_fioul", "bioenergie", "hydraulique", "solaire_photovoltaique", "eolien"},
+				    Gardees = Table.SelectColumns(Source, {"annee_prod"} & Filieres, MissingField.UseNull),
+				    Long = Table.UnpivotOtherColumns(Gardees, {"annee_prod"}, "Code filière", "MWh"),
+				    Typees = Table.TransformColumnTypes(Long, {{"annee_prod", Int64.Type}, {"MWh", type number}}, "en-US"),
+				    Renommees = Table.RenameColumns(Typees, {{"annee_prod", "Année"}})
+				in
+				    Renommees
+
+	annotation PBI_ResultType = Table
+

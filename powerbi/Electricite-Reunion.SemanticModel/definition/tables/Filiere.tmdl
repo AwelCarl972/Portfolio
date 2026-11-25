@@ -1,0 +1,55 @@
+/// Filières du bilan annuel d'EDF, et ce qui compte comme renouvelable
+table Filiere
+	lineageTag: e3a96972-d5f6-4943-9836-e51314ce9bf0
+
+	column Code
+		dataType: string
+		lineageTag: ee9f750f-e2ae-4f6d-a26d-82e2e1ca421a
+		summarizeBy: none
+		sourceColumn: Code
+
+	column Filière
+		dataType: string
+		lineageTag: e216e6f6-992d-44c0-b2e7-f45c98120117
+		summarizeBy: none
+		sourceColumn: Filière
+		sortByColumn: Ordre
+
+	column Renouvelable
+		dataType: boolean
+		lineageTag: 98dde676-0f50-40c9-bca8-713b55f711f1
+		summarizeBy: none
+		sourceColumn: Renouvelable
+
+	column Famille
+		dataType: string
+		lineageTag: 1d1b0291-df83-45c0-b1b0-1f767ffb3139
+		summarizeBy: none
+		sourceColumn: Famille
+
+	column Ordre
+		dataType: int64
+		isHidden
+		lineageTag: 765737ec-83d3-42f2-85e1-55acb493883f
+		summarizeBy: none
+		sourceColumn: Ordre
+
+	partition Filiere = m
+		mode: import
+		source =
+				let
+				    Source = #table(type table [Code = text, #"Filière" = text, Renouvelable = logical, Ordre = Int64.Type], {
+				    {"charbon", "Charbon", false, 0},
+				    {"moteurs_diesel", "Moteurs diesel", false, 1},
+				    {"turbines_a_combustion_fioul", "Turbines à combustion", false, 2},
+				    {"bioenergie", "Bioénergies", true, 3},
+				    {"hydraulique", "Hydraulique", true, 4},
+				    {"solaire_photovoltaique", "Solaire", true, 5},
+				    {"eolien", "Éolien", true, 6}
+				    }),
+				    Famille = Table.AddColumn(Source, "Famille", each if [Renouvelable] then "Renouvelable" else "Fossile", type text)
+				in
+				    Famille
+
+	annotation PBI_ResultType = Table
+

@@ -1,0 +1,20 @@
+relationship 2e01e839-025f-5de0-909c-1ed644df6245
+	fromColumn: ProductionAnnuelle.'Code filière'
+	toColumn: Filiere.Code
+
+relationship 9c82d633-6bbc-5445-af1e-9a6849134bda
+	fromColumn: ProductionAnnuelle.Année
+	toColumn: Annee.Année
+
+relationship b55bc6ec-2fb6-5ad2-84d5-58e8adf37945
+	fromColumn: Emissions.Année
+	toColumn: Annee.Année
+
+relationship ad81f1e2-8cc7-5181-b07a-ef73b0106100
+	fromColumn: Horaire.Filière
+	toColumn: FiliereHoraire.Filière
+
+relationship 93ed0306-bb66-522b-ac07-baa478a9b929
+	fromColumn: Consommation.'Code INSEE'
+	toColumn: Commune.'Code INSEE'
+

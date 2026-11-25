@@ -1,0 +1,6 @@
+/// Racine de l'API du portail open data d'EDF à La Réunion (plateforme data-fair)
+expression UrlApi = "https://opendata-reunion.edf.fr/data-fair/api/v1/datasets/" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: da160070-5428-4110-a71d-9c5b651fad9e
+
+	annotation PBI_ResultType = Text
+

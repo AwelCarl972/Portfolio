@@ -1,0 +1,108 @@
+/// Production par filière au pas horaire, 2019-2024, en format long (heure, filière, MW)
+table Horaire
+	lineageTag: 3a69ddc8-e1f8-4bf1-a994-f9ea7c5dc863
+
+	/// Somme des filières à chaque heure, moyennée sur les heures filtrées
+	measure 'Puissance moyenne (MW)' = DIVIDE(SUM(Horaire[MW]), DISTINCTCOUNT(Horaire[Heure]))
+		formatString: #,0
+		displayFolder: Rythmes
+		lineageTag: 4894d4ca-ea42-4396-b019-5695fd3c839e
+
+	measure 'Pointe (MW)' = MAXX(VALUES(Horaire[Heure]), CALCULATE(SUM(Horaire[MW])))
+		formatString: #,0
+		displayFolder: Rythmes
+		lineageTag: d3cd9c6c-1533-4a8f-85ef-6f89fe8cd545
+
+	column Heure
+		dataType: dateTime
+		formatString: dd/mm/yyyy hh:nn
+		lineageTag: b50f6409-60d5-4c1e-9657-9321c0019467
+		summarizeBy: none
+		sourceColumn: Heure
+
+	column Statut
+		dataType: string
+		lineageTag: 296896f1-34b9-46fc-9c27-d705d4e85539
+		summarizeBy: none
+		sourceColumn: Statut
+
+	column Filière
+		dataType: string
+		lineageTag: 1d7acc2c-c9c0-4335-97f0-e9a22fe070b7
+		summarizeBy: none
+		sourceColumn: Filière
+
+	column MW
+		dataType: double
+		formatString: #,0.0
+		lineageTag: f68cf2ec-9848-4727-8509-abce581b69df
+		summarizeBy: sum
+		sourceColumn: MW
+
+	column Année
+		dataType: int64
+		formatString: 0
+		lineageTag: 57879c17-1cf6-4a93-bf70-ea2c8a5f6d89
+		summarizeBy: none
+		sourceColumn: Année
+
+	column Mois
+		dataType: int64
+		formatString: 0
+		lineageTag: e2f2577d-7014-40c9-a9d8-633acf5522fc
+		summarizeBy: none
+		sourceColumn: Mois
+
+	column 'Heure du jour'
+		dataType: int64
+		formatString: 0
+		lineageTag: 1b83864a-8ec6-4acb-b90f-c49e93ebd5a6
+		summarizeBy: none
+		sourceColumn: Heure du jour
+
+	column Saison
+		dataType: string
+		lineageTag: 94c6a73a-c1b0-4d7c-a69c-f41476706dac
+		summarizeBy: none
+		sourceColumn: Saison
+
+	partition Horaire = m
+		mode: import
+		source =
+				let
+				    // L'API rend 10 000 lignes par page et l'adresse de la suivante (« next ») : on suit les pages
+				    Page = (requete as record) as record =>
+				        Json.Document(Web.Contents(UrlApi, [RelativePath = "p71tn4v1flbx5345oaj0xmfn/lines", Query = requete])),
+				    Suivante = (p as record) as nullable record =>
+				        if Record.HasFields(p, "next") and List.Count(p[results]) > 0
+				        then Page(Uri.Parts(p[next])[Query])
+				        else null,
+				    Pages = List.Generate(
+				        () => Page([size = "10000", select = "date_heure,statut,thermique_mw,bagasse_charbon_mw,hydraulique_mw,photovoltaique_mw,eolien_mw,bioenergies_mw"]),
+				        each _ <> null and List.Count(_[results]) > 0,
+				        each Suivante(_),
+				        each _[results]),
+				    Lignes = List.Combine(Pages),
+				    Brut = Table.FromRecords(Lignes, {"date_heure", "statut", "thermique_mw", "bagasse_charbon_mw", "hydraulique_mw", "photovoltaique_mw", "eolien_mw", "bioenergies_mw"}, MissingField.UseNull),
+				    // Piège : +00:00 jusqu'en 2023, heure de Paris en 2024. Ce sont des heures de La Réunion écrites comme de
+				    // l'UTC : on repasse en UTC et on retire le fuseau. Contrôle : le pic solaire tombe à 11 h chaque année.
+				    Locale = Table.TransformColumns(Brut, {{"date_heure", each DateTimeZone.RemoveZone(DateTimeZone.ToUtc(DateTimeZone.FromText(_))), type datetime}}),
+				    // Un horodatage apparaît deux fois (1er juin 2021) : une ligne par heure
+				    UneParHeure = Table.Distinct(Locale, {"date_heure"}),
+				    Long = Table.UnpivotOtherColumns(UneParHeure, {"date_heure", "statut"}, "Colonne API", "MW"),
+				    Libelles = Table.Join(Long, "Colonne API", Table.RenameColumns(FiliereHoraire, {"Colonne API", "Cle"}), "Cle"),
+				    Gardees = Table.SelectColumns(Libelles, {"date_heure", "statut", "Filière", "MW"}),
+				    Typees = Table.TransformColumnTypes(Gardees, {{"MW", type number}}, "en-US"),
+				    Renommees = Table.RenameColumns(Typees, {{"date_heure", "Heure"}, {"statut", "Statut"}}),
+				    AvecAnnee = Table.AddColumn(Renommees, "Année", each Date.Year([Heure]), Int64.Type),
+				    Mois = Table.AddColumn(AvecAnnee, "Mois", each Date.Month([Heure]), Int64.Type),
+				    HeureJour = Table.AddColumn(Mois, "Heure du jour", each Time.Hour([Heure]), Int64.Type),
+				    Saison = Table.AddColumn(HeureJour, "Saison", each
+				        if List.Contains({12, 1, 2, 3}, [Mois]) then "Été austral (déc.-mars)"
+				        else if List.Contains({6, 7, 8, 9}, [Mois]) then "Hiver austral (juin-sept.)"
+				        else "Intersaison", type text)
+				in
+				    Saison
+
+	annotation PBI_ResultType = Table
+

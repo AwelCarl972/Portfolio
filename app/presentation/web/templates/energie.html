@@ -40,6 +40,7 @@
     <button class="tab" role="tab" data-tab="bascule" aria-selected="true">La bascule 2018-2024</button>
     <button class="tab" role="tab" data-tab="rythmes" aria-selected="false">Une journée, deux saisons</button>
     <button class="tab" role="tab" data-tab="conso" aria-selected="false">Qui consomme</button>
+    <button class="tab" role="tab" data-tab="powerbi" aria-selected="false">Version Power BI</button>
     <button class="tab" role="tab" data-tab="donnees" aria-selected="false">Données & SQL</button>
   </nav>
 
@@ -150,6 +151,43 @@
         <li>Le petit regain de « solaire » vers 19 h vient probablement de centrales solaires équipées de batteries, qui stockent à midi et
           livrent à la pointe du soir. C'est une hypothèse : les données ne le disent pas.</li>
       </ul>
+    </div>
+  </section>
+
+  <!-- ============ Power BI ============ -->
+  <section role="tabpanel" id="tab-powerbi" class="space-y-4" hidden>
+    <p class="lecture">La même analyse, refaite dans <b>Power BI Desktop</b> : Power Query lit l'API d'EDF en direct, corrige le fuseau
+      horaire en M, et un modèle en étoile porte une quinzaine de mesures DAX. Le projet est enregistré au format texte (PBIP : TMDL et
+      PBIR) : chaque mesure, chaque requête et chaque visuel se relit et se versionne sur GitHub comme du code.</p>
+    <div class="flex flex-wrap gap-2">
+      <a class="btn-sm" style="font-size:14px;padding:4px 12px" href="/static/powerbi/Electricite-Reunion-PowerBI.pdf">Rapport complet en PDF (3 pages)</a>
+      <a class="btn-sm" style="font-size:14px;padding:4px 12px" href="https://github.com/AwelCarl972/Portfolio/tree/main/powerbi">Projet Power BI sur GitHub</a>
+    </div>
+    {% for n, titre in [(1, "La bascule 2018-2024"), (2, "Une journée, deux saisons"), (3, "Qui consomme")] %}
+    <figure class="card">
+      <h3>Page {{ n }} · {{ titre }}</h3>
+      <a href="/static/powerbi/page{{ n }}.png"><img src="/static/powerbi/page{{ n }}.png" loading="lazy" class="w-full rounded mt-2"
+        alt="Rapport Power BI, page {{ n }} : {{ titre }}"></a>
+    </figure>{% endfor %}
+    <div class="grid lg:grid-cols-3 gap-4">
+      <div class="card"><h3>Power Query</h3>
+        <ul class="text-sm list-disc ml-5 space-y-1 mt-2 muted">
+          <li>lecture paginée de l'API (10 000 lignes par page, lien « suivante » suivi avec <code class="inline">List.Generate</code>) ;</li>
+          <li>adresse construite avec <code class="inline">RelativePath</code> et <code class="inline">Query</code> : le rapport reste actualisable dans le service Power BI ;</li>
+          <li>fuseau corrigé par <code class="inline">DateTimeZone.ToUtc</code>, doublon retiré, filières dépivotées.</li>
+        </ul></div>
+      <div class="card"><h3>Modèle</h3>
+        <ul class="text-sm list-disc ml-5 space-y-1 mt-2 muted">
+          <li>schéma en étoile : faits annuels, horaires et de consommation ; dimensions filière, année et commune ;</li>
+          <li>filières et communes écrites dans le modèle, avec leur ordre d'affichage et leur micro-région ;</li>
+          <li>colonnes techniques masquées, ordre de tri défini, formats français.</li>
+        </ul></div>
+      <div class="card"><h3>DAX</h3>
+        <ul class="text-sm list-disc ml-5 space-y-1 mt-2 muted">
+          <li>part renouvelable recalculée depuis les filières (<code class="inline">CALCULATE</code>, <code class="inline">DIVIDE</code>) ;</li>
+          <li>« dernière année » dynamique avec <code class="inline">REMOVEFILTERS</code> et des variables ;</li>
+          <li>pointe horaire par <code class="inline">MAXX</code> sur les heures, consommation par foyer filtrée sur le résidentiel.</li>
+        </ul></div>
     </div>
   </section>
 

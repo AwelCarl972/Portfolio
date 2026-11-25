@@ -1,0 +1,21 @@
+model Model
+	culture: fr-FR
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: fr-FR
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation PBI_QueryOrder = ["UrlApi", "Filiere", "ProductionAnnuelle", "Emissions", "Annee", "FiliereHoraire", "Horaire", "Commune", "Consommation"]
+
+annotation PBI_ProTooling = ["DevMode"]
+
+ref table Filiere
+ref table ProductionAnnuelle
+ref table Emissions
+ref table Annee
+ref table FiliereHoraire
+ref table Horaire
+ref table Commune
+ref table Consommation
+

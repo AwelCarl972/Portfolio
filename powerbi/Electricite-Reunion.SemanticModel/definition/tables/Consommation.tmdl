@@ -1,0 +1,75 @@
+/// Consommation annuelle par commune et secteur ; compteurs = points de livraison
+table Consommation
+	lineageTag: 38eee873-6cb3-4065-a6c1-ff28010cc96b
+
+	measure 'Consommation (GWh)' = DIVIDE(SUM(Consommation[MWh]), 1000)
+		formatString: #,0
+		displayFolder: Consommation
+		lineageTag: 3c56044f-e585-4d83-ba61-98adce5f33c4
+
+	/// Électricité résidentielle par compteur et par an
+	measure 'kWh par foyer' = CALCULATE(DIVIDE(SUM(Consommation[MWh]) * 1000, SUM(Consommation[Compteurs])), Consommation[Secteur] = "Résidentiel")
+		formatString: #,0
+		displayFolder: Consommation
+		lineageTag: 4c8a8476-f870-4f76-aba8-e8ad07ef5f6e
+
+	measure 'Part du secteur' = DIVIDE([Consommation (GWh)], CALCULATE([Consommation (GWh)], REMOVEFILTERS(Consommation[Secteur])))
+		formatString: 0 %;-0 %;0 %
+		displayFolder: Consommation
+		lineageTag: ff643b08-9b5f-411a-ac7f-a3600a6529a8
+
+	column Année
+		dataType: int64
+		formatString: 0
+		lineageTag: eac3c331-f371-415b-b7bb-a1986a3c2496
+		summarizeBy: none
+		sourceColumn: Année
+
+	column 'Code INSEE'
+		dataType: string
+		isHidden
+		lineageTag: 2841a146-bf10-489b-b33f-46d2efd2a39a
+		summarizeBy: none
+		sourceColumn: Code INSEE
+
+	column Secteur
+		dataType: string
+		lineageTag: b130e1df-634e-4934-acc6-e1ca40d8b23b
+		summarizeBy: none
+		sourceColumn: Secteur
+
+	column MWh
+		dataType: double
+		formatString: #,0
+		lineageTag: f4557929-2f7a-4450-b433-60d1a7d81ccf
+		summarizeBy: sum
+		sourceColumn: MWh
+
+	column Compteurs
+		dataType: int64
+		formatString: #,0
+		lineageTag: d2c5b543-84ea-4a90-9324-3ba0491b7d8d
+		summarizeBy: sum
+		sourceColumn: Compteurs
+
+	partition Consommation = m
+		mode: import
+		source =
+				let
+				    Csv = (jeu as text) as table =>
+				        let
+				            Brut = Web.Contents(UrlApi, [RelativePath = jeu & "/lines", Query = [size = "10000", format = "csv"]]),
+				            Doc = Csv.Document(Brut, [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv])
+				        in
+				            Table.PromoteHeaders(Doc, [PromoteAllScalars = true]),
+				    Source = Csv("y-lrvrtj10y9rmewc5vigrh-"),
+				    Gardees = Table.SelectColumns(Source, {"annee", "code_insee", "secteur", "consommation_mwh", "nombre_de_pds"}),
+				    Typees = Table.TransformColumnTypes(Gardees, {{"annee", Int64.Type}, {"consommation_mwh", type number}, {"nombre_de_pds", Int64.Type}}, "en-US"),
+				    Code = Table.TransformColumns(Typees, {{"code_insee", each Text.PadStart(Text.From(_), 5, "0"), type text}}),
+				    Renommees = Table.RenameColumns(Code, {{"annee", "Année"}, {"code_insee", "Code INSEE"}, {"secteur", "Secteur"},
+				        {"consommation_mwh", "MWh"}, {"nombre_de_pds", "Compteurs"}})
+				in
+				    Renommees
+
+	annotation PBI_ResultType = Table
+
