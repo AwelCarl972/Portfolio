@@ -22,6 +22,7 @@
 | Climat | Il pleut **22 fois plus** sur les hauts de Sainte-Rose (10 601 mm/an) que sur la côte Ouest. **−0,64 °C par 100 m** d'altitude (R² = 0,96). Réchauffement de **+0,27 °C par décennie** depuis 1961 | 249 stations Météo-France, normales 1991-2020, anomalies par station |
 | Extrêmes | **1 825 mm en 24 h** à Foc-Foc (cyclone Denise, 1966) | Records rapprochés des cyclones du même mois |
 | Emploi | 174 080 demandeurs d'emploi fin 2022 (−1,9 % sur un an), évolution comparée des 4 micro-régions | Indice base 100, moyenne mobile (window functions) |
+| Électricité | **28 % → 92 %** d'électricité renouvelable entre 2021 et 2024, CO₂ divisé par près de 10 ; la pointe tombe en été austral (climatisation) | 52 608 heures EDF, fuseau horaire corrigé et testé, `UNPIVOT`, `arg_max`, part recalculée contre publiée |
 | Francophonie canadienne | Hors Québec, **1 million** de francophones en 2021 (+39 % depuis 1951) mais une part **divisée par deux** (7,3 % → 3,5 %). Le français se transmet à la maison à **89 %** au Nouveau-Brunswick, 42 % au Manitoba | 4 tableaux de Statistique Canada, `PIVOT`, `LAG`, `arg_min`/`arg_max`, parts recalculées puis contrôlées |
 | Immigration francophone | **28 975** francophones admis hors Québec en 2025 (×3,7 depuis 2019, 8,7 % des admissions pour une cible de 8,5 %) ; **42 %** ont choisi Ottawa | 28 000 lignes mensuelles IRCC, cellules masquées gardées à NULL |
 | Choisir une ville | Sur 9 villes et 11 indicateurs (francophonie, coût de la vie, emploi, cadre de vie), **Ottawa** arrive en tête à poids égaux ; **Moncton** passe devant dès que la francophonie compte double | Notes min-max (`UNPIVOT` + fenêtres), poids réglables dans la page |
@@ -70,7 +71,25 @@ Sources : data.regionreunion.com (API Opendatasoft, filtrage côté serveur) et 
 **Pipeline :** API open data → CSV bruts → **profil qualité (Rust)** → chargement et nettoyage SQL
 (12 étapes) → modèle analytique DuckDB (14 tables et vues) → 18 requêtes nommées → cas d'usage Python → JSON → ECharts.
 
-## 2. Francophonie canadienne (`/francophonie`)
+## 2. Électricité de La Réunion (`/energie`)
+
+Les données ouvertes d'EDF, heure par heure depuis 2019 : comment l'île est passée de **28 % à 92 %**
+d'électricité renouvelable entre 2021 et 2024 (charbon converti à la biomasse, fioul de Port-Est à la biomasse
+liquide), avec un CO₂ divisé par près de 10. Quatre onglets : **La bascule 2018-2024 · Une journée, deux saisons ·
+Qui consomme · Données & SQL**.
+
+- **Un piège corrigé** : l'horodatage annonce +00:00 jusqu'en 2023 puis l'heure de Paris en 2024, alors que ce sont
+  des heures de La Réunion. Le contrôle : le pic solaire tombe à 11 h chaque année une fois le décalage retiré (test).
+- **Des chiffres recoupés** : part renouvelable recalculée à 0,04 point de celle d'EDF, totaux horaires confrontés
+  au bilan annuel, un doublon et une heure manquante signalés plutôt que comblés.
+- **Lecture locale** : pointe de l'été austral (climatisation), pic du soir après le coucher du soleil, et un foyer
+  de L'Étang-Salé qui consomme 60 % de plus qu'un foyer de Cilaos.
+
+```powershell
+python -m app.infrastructure.opendata.fetch edf_horaire edf_annuel edf_co2 edf_conso
+```
+
+## 3. Francophonie canadienne (`/francophonie`)
 
 Le français hors Québec en 5 onglets : **Évolution 1951-2021 · Où vivre en français · Immigration depuis 2015 ·
 Choisir sa ville · Données & SQL**. Même chaîne que l'Observatoire, et même règle : chaque graphique a ses boutons
@@ -110,7 +129,7 @@ Choisir sa ville · Données & SQL**. Même chaîne que l'Observatoire, et même
 python -m app.infrastructure.opendata.fetch statcan_langue_maternelle statcan_plos statcan_connaissance statcan_langue_maison statcan_recensement_villes statcan_mbm statcan_loyers statcan_revenus statcan_chomage_rmr statcan_criminalite statcan_satisfaction ircc_francophones_rmr ircc_rp_rmr
 ```
 
-## 3. Rust : `datakit`
+## 4. Rust : `datakit`
 
 Binaire natif (`rust/datakit`) appelé par Python via un tube local. Il ne touche à aucune base : il reçoit
 ses entrées et répond en JSON.
@@ -125,7 +144,7 @@ ses entrées et répond en JSON.
   disponible en repli (`PRIVACY_ENGINE=python`).
 - Tests unitaires Rust : `cargo test` ; dépendances limitées à l'essentiel (`csv`, `flate2`, `hmac`, `sha2`, `fancy-regex`, `serde`).
 
-## 4. Parc & IA : maintenance prédictive et confidentialité (`/parc`)
+## 5. Parc & IA : maintenance prédictive et confidentialité (`/parc`)
 
 Gestion d'un parc de véhicules et d'engins (données simulées, réalistes pour La Réunion) : score de risque
 par actif, dérive des intervalles de panne, et **date limite de commande des pièces selon le fret maritime
@@ -145,7 +164,7 @@ Texte brut ──► Masquage local (Rust) ──► Payload anonymisé ──�
   ne ressemblant à aucun motif ne serait pas masqué. Suite prévue : une étape de reconnaissance d'entités locale
   derrière le même port `Anonymizer`.
 
-## 5. Projets : avant ce portfolio, repris et corrigés (`/projets`)
+## 6. Projets : avant ce portfolio, repris et corrigés (`/projets`)
 
 Deux travaux antérieurs, rechargés dans la même chaîne (CSV → SQL DuckDB → ECharts) et relus avec un œil d'analyste.
 
@@ -193,11 +212,11 @@ Les dépendances pointent vers le domaine. Changer de base, de LLM ou de moteur 
 python -m venv .venv; .venv\Scripts\activate
 pip install -r requirements.txt
 cd rust\datakit; cargo build --release; cd ..\..   # facultatif : sans binaire, repli automatique sur Python
-python -m app.infrastructure.opendata.fetch       # ~22 Mo d'open data (Réunion + Canada), une seule fois
+python -m app.infrastructure.opendata.fetch       # ~27 Mo d'open data (Réunion + Canada), une seule fois
 python -m uvicorn app.presentation.web.main:app --reload
 ```
 
-Ouvrir http://127.0.0.1:8000/observatoire (dashboard), http://127.0.0.1:8000/francophonie et http://127.0.0.1:8000/parc (Parc & IA). Sans clé API,
+Ouvrir http://127.0.0.1:8000 (accueil), http://127.0.0.1:8000/energie, http://127.0.0.1:8000/observatoire (dashboard), http://127.0.0.1:8000/francophonie et http://127.0.0.1:8000/parc (Parc & IA). Sans clé API,
 un simulateur d'IA hors-ligne répond ; avec `ANTHROPIC_API_KEY` (et `pip install anthropic`), c'est un vrai LLM.
 Tests : `pytest` et `cargo test`.
 

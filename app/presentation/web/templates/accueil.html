@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Axel Claude — data analyst · La Réunion et Canada francophone</title>
+  <meta name="description" content="Portfolio d'Axel Claude, data analyst certifié Le Wagon : SQL, Python, Rust, tableaux de bord et IA, sur des données publiques de La Réunion et du Canada.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/static/theme.css?v={{ v }}">
+  <style>
+    .hero h2 { font-size: 28px; font-weight: 700; line-height: 1.2; }
+    .projet { display: flex; flex-direction: column; gap: 6px; transition: border-color .15s; }
+    .projet:hover { border-color: var(--s1); }
+    .projet .chiffre { font-size: 24px; font-weight: 700; color: var(--s1); line-height: 1.1; }
+    .projet .lien { margin-top: auto; font-size: 13px; color: var(--s1); }
+    .btn { display: inline-block; background: var(--s1); color: #fff; border-radius: 8px; padding: 7px 16px; font-size: 14px; font-weight: 500; }
+    .btn-ghost { display: inline-block; border: 1px solid var(--border); border-radius: 8px; padding: 6px 14px; font-size: 14px; }
+    .btn-ghost:hover { border-color: var(--s1); }
+    .tag { display: inline-block; font-size: 12px; border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; margin: 0 4px 6px 0; }
+  </style>
+</head>
+<body class="viz-root">
+<header class="bg-slate-900 text-white px-4 sm:px-6 py-4">
+  <h1 class="text-xl font-bold">Axel Claude <span class="text-sky-300 font-normal">· data analyst</span></h1>
+  <p class="text-sm text-slate-300">Certifié Le Wagon (RNCP niveau 6) · SQL, Python, Rust, IA</p>
+  <nav class="mt-2 text-sm"><span class="font-semibold">Accueil</span> · <a class="underline text-sky-300" href="/observatoire">Observatoire Réunion</a> · <a class="underline text-sky-300" href="/energie">Électricité Réunion</a> · <a class="underline text-sky-300" href="/francophonie">Francophonie Canada</a> · <a class="underline text-sky-300" href="/parc">Parc & IA</a> · <a class="underline text-sky-300" href="/projets">Projets</a> · <a class="underline text-sky-300" href="/cv">CV</a></nav>
+</header>
+
+<main class="max-w-6xl mx-auto px-3 py-5 sm:p-6 space-y-6">
+  <section class="hero card space-y-3" style="padding: 20px 22px">
+    <h2>Je transforme des données publiques en décisions lisibles.</h2>
+    <p class="muted" style="font-size: 15px; max-width: 60em">Chaque page de ce site part de vraies données ouvertes (EDF, Insee, Météo-France, Statistique Canada…),
+      les nettoie en SQL, contrôle les chiffres, puis les explique en clair, <b>avec le code visible sous chaque graphique</b>. Je cherche un poste de
+      data analyst <b>à La Réunion</b> ou <b>au Canada francophone</b> (Moncton, Ottawa), en CDI ou CDD.</p>
+    <div class="flex flex-wrap gap-2 pt-1">
+      <a class="btn" href="/cv">Mon CV</a>
+      <a class="btn-ghost" href="/static/cv/CV-Axel-Claude-Data-Analyst-EN.pdf">English resume (PDF)</a>
+      <a class="btn-ghost" href="mailto:contact@axelclaude.fr">contact@axelclaude.fr</a>
+      <a class="btn-ghost" href="https://github.com/AwelCarl972/Portfolio">Code sur GitHub</a>
+    </div>
+  </section>
+
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold">Cinq analyses, un chiffre chacune</h2>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <a class="card projet" href="/energie">
+        <div class="tile-label">Électricité de La Réunion · open data EDF</div>
+        <div class="chiffre">28 % → 92 %</div>
+        <p class="text-sm">d'électricité renouvelable entre 2021 et 2024, et un CO₂ divisé par près de 10. 52 608 heures de production analysées,
+          dont un piège de fuseau horaire corrigé.</p>
+        <span class="lien">Voir l'analyse →</span>
+      </a>
+      <a class="card projet" href="/observatoire">
+        <div class="tile-label">Observatoire Réunion · 8 sources publiques</div>
+        <div class="chiffre">22 fois plus</div>
+        <p class="text-sm">de pluie sur les hauts de Sainte-Rose que sur la côte Ouest ; prix de l'immobilier, emploi et accidents comparés
+          commune par commune, sur 24 communes.</p>
+        <span class="lien">Voir le tableau de bord →</span>
+      </a>
+      <a class="card projet" href="/francophonie">
+        <div class="tile-label">Francophonie canadienne · Statistique Canada, IRCC</div>
+        <div class="chiffre">9 villes, 11 critères</div>
+        <p class="text-sm">pour choisir où s'installer hors Québec : Ottawa en tête à poids égaux, Moncton dès que le français compte double.</p>
+        <span class="lien">Voir le comparatif →</span>
+      </a>
+      <a class="card projet" href="/parc">
+        <div class="tile-label">Parc & IA · démo sur données simulées</div>
+        <div class="chiffre">0 donnée personnelle</div>
+        <p class="text-sm">envoyée à l'IA : les comptes rendus sont anonymisés sur le serveur, en Rust, avant d'être résumés par Claude.</p>
+        <span class="lien">Essayer la démo →</span>
+      </a>
+      <a class="card projet" href="/projets">
+        <div class="tile-label">Projets · Le Wagon et trading</div>
+        <div class="chiffre">50 816</div>
+        <p class="text-sm">points de recharge mis en service en France en 2023, sur une carte qui se construit mois par mois ; et des
+          stratégies de trading testées sans se fier au meilleur résultat.</p>
+        <span class="lien">Voir les projets →</span>
+      </a>
+      <div class="card projet">
+        <div class="tile-label">Outils</div>
+        <div class="pt-1">
+          <span class="tag">SQL avancé (DuckDB)</span><span class="tag">Python · pandas</span><span class="tag">FastAPI · HTMX</span>
+          <span class="tag">ECharts · Looker Studio</span><span class="tag">Rust</span><span class="tag">API Claude</span>
+          <span class="tag">Git · Docker</span>
+        </div>
+        <p class="text-sm muted">Français langue maternelle, anglais B1 (en progression).</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid lg:grid-cols-3 gap-4">
+    <div class="card"><h3>Des chiffres vérifiés</h3>
+      <p class="text-sm muted mt-1">Je recalcule ce qui est publié et je compare : la part renouvelable d'EDF à 0,04 point près, les parts de
+        Statistique Canada à l'arrondi près. Les écarts et les limites sont affichés, pas cachés.</p></div>
+    <div class="card"><h3>Le métier avant l'outil</h3>
+      <p class="text-sm muted mt-1">Délais du fret maritime, climatisation de l'été austral, cellules masquées d'un fichier d'immigration :
+        une analyse utile commence par comprendre le terrain.</p></div>
+    <div class="card"><h3>L'IA, proprement</h3>
+      <p class="text-sm muted mt-1">J'utilise l'IA là où elle fait gagner du temps, sans y envoyer de données personnelles : c'est la condition
+        pour qu'une entreprise ose s'en servir.</p></div>
+  </section>
+</main>
+</body>
+</html>

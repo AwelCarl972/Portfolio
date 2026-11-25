@@ -7,6 +7,7 @@ from pathlib import Path
 
 from app.application.use_cases.analyze_report import AnalyzeReport
 from app.application.use_cases.fleet_overview import FleetOverview
+from app.application.use_cases.energie import EnergieShowcase
 from app.application.use_cases.francophonie import FrancophonieShowcase
 from app.application.use_cases.projets import ProjetsShowcase
 from app.application.use_cases.territory_dashboard import TerritoryDashboard
@@ -17,6 +18,7 @@ from app.infrastructure.privacy.rust_engine import RustPseudonymizer
 from app.infrastructure.seed import seed_if_empty
 from app.infrastructure.sql.repository import (Database, DuckEntityCatalog, DuckFleetRepository,
                                                DuckMappingStore)
+from app.infrastructure.sql.energie_repository import DuckEnergieRepository
 from app.infrastructure.sql.francophonie_repository import DuckFrancophonieRepository
 from app.infrastructure.sql.projets_repository import DuckProjetsRepository
 from app.infrastructure.sql.territory_repository import DuckTerritoryRepository
@@ -30,6 +32,7 @@ class Container:
     territory: TerritoryDashboard
     projets: ProjetsShowcase
     francophonie: FrancophonieShowcase
+    energie: EnergieShowcase
 
 
 def _secret(data_dir: Path) -> bytes:
@@ -55,8 +58,11 @@ def container() -> Container:
     projets.load()  # tables pj_* : carte des bornes (Le Wagon) et optimisations MetaTrader
     francophonie = DuckFrancophonieRepository(db, db_path.parent / "raw")
     francophonie.load()  # tables fr_* : recensements canadiens 1951-2021 (Statistique Canada)
+    energie = DuckEnergieRepository(db, db_path.parent / "raw")
+    energie.load()  # tables en_* : électricité de La Réunion (open data EDF)
     return Container(FleetOverview(repo), AnalyzeReport(repo, anonymizer, build_llm()), store,
-                     TerritoryDashboard(territory), ProjetsShowcase(projets), FrancophonieShowcase(francophonie))
+                     TerritoryDashboard(territory), ProjetsShowcase(projets), FrancophonieShowcase(francophonie),
+                     EnergieShowcase(energie))
 
 
 def get_territory() -> TerritoryDashboard:
@@ -69,6 +75,10 @@ def get_projets() -> ProjetsShowcase:
 
 def get_francophonie() -> FrancophonieShowcase:
     return container().francophonie
+
+
+def get_energie() -> EnergieShowcase:
+    return container().energie
 
 
 def get_overview() -> FleetOverview:

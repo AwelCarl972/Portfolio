@@ -22,6 +22,7 @@ The interface is in French; this document describes what each page shows.
 |---|---|---|
 | French in Canada | Outside Quebec, **1 million** people had French as their mother tongue in 2021, up 39 % since 1951, yet their share **halved** (7.3 % → 3.5 %) | 4 Statistics Canada tables, `PIVOT`, recomputed shares checked against published ones |
 | Language transmission | In New Brunswick, **89 %** of French mother-tongue speakers still mostly speak French at home, vs. 56 % in Ontario and 42 % in Manitoba | Language continuity index (home language ÷ mother tongue) |
+| Electricity | **28 % → 92 %** renewable electricity on Reunion Island between 2021 and 2024, CO₂ cut almost tenfold; the yearly peak hits in the austral summer (air conditioning) | 52,608 hourly EDF rows, time-zone trap fixed and tested, renewable share recomputed against the published one |
 | Bilingualism | English-French bilingualism rose from 26 % to **46 %** in Quebec (1951-2021) but has stalled at about 10 % in the rest of Canada since 2001 | Time series by province |
 | Francophone immigration | **28,975** French-speaking permanent residents admitted outside Quebec in 2025 (×3.7 since 2019, 8.7 % of admissions vs. an 8.5 % target); **42 %** settled in Ottawa | 28,000 monthly IRCC rows, suppressed cells kept as NULL |
 | Choosing a city | Across 9 cities and 11 indicators (French, cost of living, jobs, quality of life), **Ottawa** ranks first with equal weights; **Moncton** takes the lead as soon as French counts double | Min-max scores (`UNPIVOT` + window functions), weights adjustable in the page |
@@ -82,7 +83,18 @@ Choosing a city · Data & SQL**.
 - **Indicators**: language continuity index, base-100 index, change between censuses (`LAG`), each province's
   share of the total (`SUM() OVER ()`).
 
-## 2. Reunion Island observatory (`/observatoire`)
+## 2. Electricity on Reunion Island (`/energie`)
+
+EDF open data, hour by hour since 2019: how the island went from **28 % to 92 %** renewable electricity between
+2021 and 2024 (coal plants converted to biomass, the Port-Est oil plant to liquid biomass), with CO₂ cut almost
+tenfold. Four tabs: **The switch 2018-2024 · One day, two seasons · Who consumes · Data & SQL**.
+
+- **A trap found and fixed**: timestamps claim +00:00 until 2023, then Paris time in 2024, while they are actually
+  Reunion local time. The check: the solar peak lands at 11 am every year once the offset is removed (tested).
+- **Cross-checked figures**: renewable share recomputed within 0.04 points of EDF's, hourly totals compared with the
+  annual report, one duplicate and one missing hour reported rather than filled in.
+
+## 3. Reunion Island observatory (`/observatoire`)
 
 A 6-tab dashboard: **Real estate · Road safety · Employment & housing · Climate · Correlations · Data & SQL**.
 Every chart has a **Table** button and a **SQL** button that opens its query.
@@ -101,7 +113,7 @@ Every chart has a **Table** button and a **SQL** button that opens its query.
 **Pipeline:** open-data API → raw CSV → **quality profile (Rust)** → SQL loading and cleaning (12 steps)
 → DuckDB analytical model (14 tables and views) → 18 named queries → Python use cases → JSON → ECharts.
 
-## 3. Rust: `datakit`
+## 4. Rust: `datakit`
 
 A native binary (`rust/datakit`) called from Python through a local pipe. It touches no database: it receives its
 input and answers in JSON.
@@ -114,7 +126,7 @@ input and answers in JSON.
 A cross-test (pytest) proves the Rust and Python engines produce exactly the same anonymized text. The Python
 engine remains as a fallback (`PRIVACY_ENGINE=python`).
 
-## 4. Fleet & AI: predictive maintenance and privacy (`/parc`)
+## 5. Fleet & AI: predictive maintenance and privacy (`/parc`)
 
 Management of a fleet of vehicles and machinery (simulated data): risk score per asset, drift in failure intervals,
 and **the latest date to order parts by sea (30-45 days) or air freight (4-7 days)**. The AI writes the analysis of a
@@ -130,7 +142,7 @@ Raw text ──► Local masking (Rust) ──► Anonymized payload ──► L
 - **Known limit**: this is detection-based pseudonymization; an unknown proper noun matching no pattern would not be
   masked. Next step: a local named-entity recognition stage behind the same `Anonymizer` port.
 
-## 5. Earlier projects, revisited (`/projets`)
+## 6. Earlier projects, revisited (`/projets`)
 
 - **EV charging stations (Le Wagon final project, 2025).** 126,787 charging points opened in France from 2010 to
   2025 on 30,113 sites: an animated month-by-month map. Revisiting it, I counted the outliers instead of hiding them,
@@ -165,11 +177,11 @@ Dependencies point towards the domain. Changing database, LLM or masking engine 
 python -m venv .venv; .venv\Scripts\activate
 pip install -r requirements.txt
 cd rust\datakit; cargo build --release; cd ..\..   # optional: without the binary, falls back to Python
-python -m app.infrastructure.opendata.fetch       # ~22 MB of open data, once
+python -m app.infrastructure.opendata.fetch       # ~27 MB of open data, once
 python -m uvicorn app.presentation.web.main:app --reload
 ```
 
-Open http://127.0.0.1:8000/francophonie, http://127.0.0.1:8000/observatoire and http://127.0.0.1:8000/parc.
+Open http://127.0.0.1:8000 (home), http://127.0.0.1:8000/energie, http://127.0.0.1:8000/francophonie, http://127.0.0.1:8000/observatoire and http://127.0.0.1:8000/parc.
 Without an API key an offline AI simulator answers; with `ANTHROPIC_API_KEY` (and `pip install anthropic`) it is a
 real LLM. Tests: `pytest` and `cargo test`.
 

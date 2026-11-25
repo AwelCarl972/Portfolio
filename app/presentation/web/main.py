@@ -6,20 +6,21 @@ from typing import Annotated
 import duckdb
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 from markupsafe import Markup, escape
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.application.use_cases.analyze_report import AnalyzeReport
 from app.application.use_cases.fleet_overview import FleetOverview
+from app.application.use_cases.energie import EnergieShowcase
 from app.application.use_cases.francophonie import FrancophonieShowcase
 from app.application.use_cases.projets import ProjetsShowcase
 from app.application.use_cases.territory_dashboard import TerritoryDashboard
 from app.domain.rules import risk_level, status_label
 from app.domain.territory import REGIONS
 
-from .deps import get_analyze, get_francophonie, get_overview, get_projets, get_store, get_territory
+from .deps import get_analyze, get_energie, get_francophonie, get_overview, get_projets, get_store, get_territory
 from .quota import depuis_env
 
 app = FastAPI(title="ParcInsulaire")
@@ -54,10 +55,10 @@ def sante():
     return {"ok": True}
 
 
-@app.get("/")
-def accueil():
-    """L'Observatoire ouvre le portfolio : des données réelles d'abord, la démo sur données simulées ensuite."""
-    return RedirectResponse("/observatoire", status_code=307)
+@app.get("/", response_class=HTMLResponse)
+def accueil(request: Request):
+    """Page recruteur : qui, où, quoi, en 30 secondes, et un chiffre par analyse."""
+    return templates.TemplateResponse(request, "accueil.html", {})
 
 
 _ALIAS = re.compile(r"\b(?:ACTIF|LIEU|CLIENT|TEL|MAIL|REF)_[0-9A-Za-z]{2,16}\b")
@@ -154,6 +155,13 @@ def projets_donnees(uc: Annotated[ProjetsShowcase, Depends(get_projets)], name: 
 
 
 # --- Francophonie canadienne : recensements 1951-2021 (Statistique Canada) ---------------------------------
+
+@app.get("/energie", response_class=HTMLResponse)
+def energie(request: Request, uc: Annotated[EnergieShowcase, Depends(get_energie)]):
+    if not uc.available():
+        return templates.TemplateResponse(request, "energie.html", {"missing": True})
+    return templates.TemplateResponse(request, "energie.html", {"missing": False, "page": jsonable_encoder(uc.page())})
+
 
 @app.get("/francophonie", response_class=HTMLResponse)
 def francophonie(request: Request, uc: Annotated[FrancophonieShowcase, Depends(get_francophonie)]):

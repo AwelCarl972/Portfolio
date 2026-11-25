@@ -22,7 +22,8 @@ class Database:
     def __init__(self, path: str):
         self._con = duckdb.connect(path)
         self._lock = threading.RLock()
-        self.q = _load_queries("queries.sql", "territory_queries.sql", "projets_queries.sql", "francophonie_queries.sql")
+        self.q = _load_queries("queries.sql", "territory_queries.sql", "projets_queries.sql", "francophonie_queries.sql",
+                               "energie_queries.sql")
         self.execute((_DIR / "schema.sql").read_text(encoding="utf-8"))
 
     def execute(self, sql: str, params: tuple = ()):

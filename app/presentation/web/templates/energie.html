@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Électricité de La Réunion — la bascule renouvelable, en données</title>
+  <meta name="description" content="La Réunion est passée de 28 % à 92 % d'électricité renouvelable entre 2021 et 2024. Données ouvertes d'EDF, heure par heure, analysées en SQL.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+  <link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github.min.css">
+  <link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
+  <link rel="stylesheet" href="/static/theme.css?v={{ v }}">
+  <style>
+    .lecture { border-left: 3px solid var(--s1); padding: 4px 0 4px 12px; font-size: 14px; }
+    table.simple { width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+    table.simple th { text-align: left; color: var(--text-secondary); font-weight: 500; border-bottom: 1px solid var(--grid); padding: 4px 6px; }
+    table.simple td { border-bottom: 1px solid var(--grid); padding: 4px 6px; }
+    table.simple td.n, table.simple th.n { text-align: right; }
+    .sql-box, .tbl-box { margin-top: 8px; }
+    .tile-value.vert { color: var(--s3); }
+  </style>
+</head>
+<body class="viz-root">
+<header class="bg-slate-900 text-white px-4 sm:px-6 py-4">
+  <h1 class="text-xl font-bold">Électricité de La Réunion <span class="text-sky-300 font-normal">· la bascule renouvelable, en données</span></h1>
+  <p class="text-sm text-slate-300">Open data EDF · 52 608 heures de production (2019-2024), bilans annuels, CO₂, consommation par commune → SQL DuckDB → ECharts</p>
+  <nav class="mt-2 text-sm"><a class="underline text-sky-300" href="/">Accueil</a> · <a class="underline text-sky-300" href="/observatoire">Observatoire Réunion</a> · <span class="font-semibold">Électricité Réunion</span> · <a class="underline text-sky-300" href="/francophonie">Francophonie Canada</a> · <a class="underline text-sky-300" href="/parc">Parc & IA</a> · <a class="underline text-sky-300" href="/projets">Projets</a> · <a class="underline text-sky-300" href="/cv">CV</a></nav>
+</header>
+
+<main class="max-w-7xl mx-auto px-3 py-4 sm:p-6 space-y-5">
+{% if missing %}
+  <div class="card"><h3>Données d'EDF absentes</h3>
+    <p class="sub">Téléchargez-les (4 fichiers, 5 Mo) puis relancez le serveur :</p>
+    <pre class="text-sm">python -m app.infrastructure.opendata.fetch edf_horaire edf_annuel edf_co2 edf_conso</pre></div>
+{% else %}
+  {% set k = page.kpis %}
+  {% macro n(v) %}{{ "{:,.0f}".format(v).replace(",", " ") }}{% endmacro %}
+  {% macro p(v, d=1) %}{{ ("%." ~ d ~ "f")|format(v)|replace(".", ",") }}{% endmacro %}
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="bascule" aria-selected="true">La bascule 2018-2024</button>
+    <button class="tab" role="tab" data-tab="rythmes" aria-selected="false">Une journée, deux saisons</button>
+    <button class="tab" role="tab" data-tab="conso" aria-selected="false">Qui consomme</button>
+    <button class="tab" role="tab" data-tab="donnees" aria-selected="false">Données & SQL</button>
+  </nav>
+
+  <!-- ============ La bascule ============ -->
+  <section role="tabpanel" id="tab-bascule" class="space-y-4">
+    <p class="lecture">Une île ne peut pas importer d'électricité : pas de câble vers le continent, tout est produit sur place.
+      Jusqu'en 2021, <b>plus de 70 %</b> venait du charbon et du fioul. En trois ans, les centrales à charbon ont été converties à la
+      biomasse et la centrale au fioul de Port-Est à la biomasse liquide : en {{ k.an }}, <b>{{ p(k.part_enr) }} %</b> de l'électricité
+      de l'île est renouvelable, et les émissions de CO₂ ont été <b>divisées par près de {{ (k.co2_kt_2021 / k.co2_kt)|round|int }}</b>.</p>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="tile"><div class="tile-label">Part renouvelable ({{ k.an }})</div><div class="tile-value vert">{{ p(k.part_enr) }} %</div>
+        <div class="tile-sub muted">contre {{ p(k.part_enr_2021) }} % en 2021</div></div>
+      <div class="tile"><div class="tile-label">CO₂ émis pour produire l'électricité</div><div class="tile-value">{{ n(k.co2_kt) }} kt</div>
+        <div class="tile-sub muted">{{ n(k.co2_kt_2021) }} kt en 2021 · {{ p(100 * (k.co2_kt / k.co2_kt_2021 - 1), 0) }} %</div></div>
+      <div class="tile"><div class="tile-label">Électricité tirée du charbon</div><div class="tile-value">{{ n(k.charbon_gwh) }} GWh</div>
+        <div class="tile-sub muted">{{ n(k.charbon_gwh_2020) }} GWh en 2020</div></div>
+      <div class="tile"><div class="tile-label">Production totale ({{ k.an }})</div><div class="tile-value">{{ p(k.total_twh, 2) }} TWh</div>
+        <div class="tile-sub muted">stable depuis 2018 : la bascule ne doit rien à une baisse de la demande</div></div>
+    </div>
+    <div class="grid lg:grid-cols-3 gap-4">
+      <div class="card lg:col-span-2" data-chart="mix" data-sql="en_mix">
+        <h3>D'où vient l'électricité de l'île</h3>
+        <p class="sub">Production annuelle par filière, en GWh · gris = fossile, couleurs = renouvelable · ligne = part renouvelable (axe de droite)</p>
+        <div class="chart chart-tall"></div>
+      </div>
+      <div class="card" data-chart="co2" data-sql="en_co2_q">
+        <h3>Le CO₂ s'effondre en deux ans</h3>
+        <p class="sub">Émissions directes de la production d'électricité, en milliers de tonnes</p>
+        <div class="chart chart-tall"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Rythmes ============ -->
+  <section role="tabpanel" id="tab-rythmes" class="space-y-4" hidden>
+    <p class="lecture">Le réseau doit produire, à chaque instant, exactement ce que l'île consomme. Deux pics par jour : <b>vers 11 h</b>
+      (bureaux, commerces, climatisation) et <b>vers 19 h</b>, quand le soleil est couché et que tout le monde rentre. C'est à ce
+      second pic que le solaire ne peut plus rien, et que les centrales pilotables font la différence.</p>
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="card" data-chart="journee" data-sql="en_journee">
+        <h3>Une journée moyenne en 2023</h3>
+        <p class="sub">Puissance moyenne par heure et par filière, en MW, heure de La Réunion · dernière année où EDF sépare la bagasse/charbon du thermique</p>
+        <div class="chart chart-tall"></div>
+      </div>
+      <div class="card" data-chart="saisons" data-sql="en_saisons">
+        <h3>L'été austral consomme plus que l'hiver</h3>
+        <p class="sub">Appel de puissance moyen par heure, 2019-2024 · été = décembre à mars, hiver = juin à septembre</p>
+        <div class="chart chart-tall"></div>
+      </div>
+    </div>
+    <div class="card" data-sql="en_pointe">
+      <h3>La pointe de l'année tombe en plein été</h3>
+      <table class="simple mt-2"><thead><tr><th>Année</th><th>Heure la plus chargée</th><th class="n">Pointe (MW)</th><th class="n">Moyenne (MW)</th></tr></thead><tbody>
+      {% for r in page.en_pointe %}<tr><td>{{ r.annee }}</td><td>{{ r.heure_pointe }}</td>
+        <td class="n">{{ n(r.pointe_mw) }}</td><td class="n">{{ n(r.moyenne_mw) }}</td></tr>{% endfor %}
+      </tbody></table>
+      <p class="text-sm muted mt-2">Chaque année, l'heure la plus chargée tombe entre décembre et mars, en fin de matinée ou en début d'après-midi : c'est la
+        climatisation de l'été austral. Il faut donc des centrales capables de fournir {{ n(page.en_pointe[-1].pointe_mw) }} MW, alors que
+        l'île n'en consomme que {{ n(page.en_pointe[-1].moyenne_mw) }} en moyenne.</p>
+    </div>
+  </section>
+
+  <!-- ============ Consommation ============ -->
+  <section role="tabpanel" id="tab-conso" class="space-y-4" hidden>
+    {% set s = page.en_secteurs %}
+    <p class="lecture">Les foyers ({{ p(s|selectattr("secteur", "eq", "Résidentiel")|map(attribute="part_pct")|first, 0) }} %) et le
+      tertiaire ({{ p(s|selectattr("secteur", "eq", "Tertiaire")|map(attribute="part_pct")|first, 0) }} % : commerces, bureaux, hôpitaux,
+      administrations) consomment presque toute l'électricité ; l'industrie ne pèse que
+      {{ p(s|selectattr("secteur", "eq", "Industrie")|map(attribute="part_pct")|first, 0) }} %. D'une commune à l'autre, un foyer
+      consomme jusqu'à {{ p(100 * (page.en_communes[0].kwh_par_foyer / page.en_communes[-1].kwh_par_foyer - 1), 0) }} % de plus : le
+      littoral chaud de l'Ouest climatise, tandis que Cilaos et Salazie, au fond des cirques, ferment la marche.</p>
+    <div class="card" data-chart="communes" data-sql="en_communes">
+      <h3>Consommation d'un foyer, commune par commune</h3>
+      <p class="sub">Électricité résidentielle par compteur, en kWh par an, {{ page.en_communes[0].annee }} · en vert, les communes des Hauts (altitude, climat frais)</p>
+      <div class="chart" style="height: 560px"></div>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="card">
+        <h3>Ce que j'en retiens sur l'île</h3>
+        <ul class="text-sm list-disc ml-5 space-y-1 mt-2">
+          <li><b>La Réunion a fait en trois ans ce que beaucoup de territoires visent pour 2030 ou 2050</b> : passer d'une électricité majoritairement fossile
+            à une électricité presque entièrement renouvelable.</li>
+          <li><b>Le solaire ne suffit pas à une île</b> : il produit à midi, alors que la pointe du soir arrive après le coucher du soleil. Ce sont
+            des centrales pilotables (biomasse, hydraulique) qui ont remplacé le charbon et le fioul.</li>
+          <li><b>Le climat se lit dans les factures</b> : Cilaos, à 1 200 m d'altitude, consomme plus d'un tiers de moins par foyer que L'Étang-Salé, sur la
+            côte ouest.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Pourquoi c'est utile à un employeur</h3>
+        <ul class="text-sm list-disc ml-5 space-y-1 mt-2">
+          <li><b>Un piège trouvé et corrigé</b> : EDF change de fuseau horaire en cours de fichier. Sans correction, le soleil se lèverait une heure
+            plus tard en 2024. Le contrôle (pic solaire à 11 h chaque année) est dans l'onglet Données.</li>
+          <li><b>Des chiffres recoupés</b> : la part renouvelable recalculée colle à 0,04 point près à celle d'EDF, et les totaux horaires au bilan
+            annuel à {{ p(page.ecart_horaire_pct) }} % près.</li>
+          <li><b>Le sujet local par excellence</b> : énergie, climat et coût de la vie chère sont au cœur des débats à La Réunion.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Limites</h3>
+      <ul class="text-sm list-disc ml-5 space-y-1 mt-2 muted">
+        <li><b>Renouvelable ne veut pas dire local</b> : une partie de la biomasse brûlée est importée (granulés de bois, biomasse liquide). La part
+          renouvelable ne dit rien de l'autonomie énergétique de l'île.</li>
+        <li>Au pas horaire, EDF regroupe les filières autrement qu'au bilan annuel, et le « thermique » de 2024 brûle de la biomasse liquide : la
+          part renouvelable est donc lue dans le bilan annuel, jamais dans les données horaires.</li>
+        <li>Deux heures sur trois sont « estimées » et non validées ; les totaux horaires s'écartent du bilan annuel de quelques pourcents.</li>
+        <li>Le petit regain de « solaire » vers 19 h vient probablement de centrales solaires équipées de batteries, qui stockent à midi et
+          livrent à la pointe du soir. C'est une hypothèse : les données ne le disent pas.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ Données ============ -->
+  <section role="tabpanel" id="tab-donnees" class="space-y-4" hidden>
+    <div class="flow">
+      <div class="flow-step"><b>1 · Téléchargement</b>4 jeux EDF par l'API de leur portail, page par page (10 000 lignes)</div><div class="flow-arrow">→</div>
+      <div class="flow-step"><b>2 · Fuseaux horaires</b>heure locale reconstituée, doublon retiré : <code class="inline">en_horaire</code></div><div class="flow-arrow">→</div>
+      <div class="flow-step"><b>3 · Format long</b><code class="inline">UNPIVOT</code> du bilan annuel, filières et communes jointes au domaine</div><div class="flow-arrow">→</div>
+      <div class="flow-step"><b>4 · Contrôles</b>part recalculée contre publiée, horaire contre annuel, heures complètes</div><div class="flow-arrow">→</div>
+      <div class="flow-step"><b>5 · Restitution</b>{{ page.sql.values()|rejectattr("etape")|list|length }} requêtes nommées → JSON → ECharts</div>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="card"><h3>Sources</h3>
+        <table class="simple"><thead><tr><th>Fichier</th><th>Jeu de données EDF</th><th class="n">Lignes</th><th class="n">Ko</th></tr></thead><tbody>
+        {% set titres = {"edf_horaire": "Production par filière au pas horaire, 2019-2024",
+                         "edf_annuel": "Production annuelle validée par filière, 2018-2024",
+                         "edf_co2": "Émissions annuelles de CO₂, 2014-2024",
+                         "edf_conso": "Consommation annuelle par commune et secteur, 2012-2024"} %}
+        {% for s in page.sources %}
+          <tr><td><code class="inline">{{ s.fichier }}</code></td><td>{{ titres[s.fichier.split(".")[0]] }}</td>
+            <td class="n">{{ n(s.lignes) }}</td><td class="n">{{ s.ko }}</td></tr>{% endfor %}
+        </tbody></table>
+        <p class="text-sm muted mt-2">Portail : <a class="underline" href="https://opendata-reunion.edf.fr/">opendata-reunion.edf.fr</a> · Licence Ouverte.</p></div>
+      <div class="card" data-sql="en_qualite"><h3>Du brut au retenu</h3>
+        <table class="simple"><tbody>{% for q in page.en_qualite %}
+          <tr><td>{{ q.etape }}</td><td class="n">{{ n(q.valeur) if q.valeur % 1 == 0 else p(q.valeur, 2) }}</td></tr>{% endfor %}
+        </tbody></table>
+        <p class="text-sm mt-3"><b>Règles de nettoyage</b></p>
+        <ul class="text-sm list-disc ml-5 muted">
+          <li>l'horodatage annonce +00:00 jusqu'en 2023, puis l'heure de Paris (+01:00 / +02:00) en 2024. Le pic solaire, lui, tombe toujours à
+            11 h une fois le décalage retiré : ce sont des heures de La Réunion écrites comme de l'UTC ;</li>
+          <li>une heure du 1er juin 2021 apparaît deux fois, et le 5 juin 2021 à minuit manque : on garde une ligne par heure, sans inventer
+            celle qui manque ;</li>
+          <li>la nuit, le « solaire » est légèrement négatif (consommation propre des onduleurs) : gardé tel quel dans les totaux, ramené à 0 dans
+            la journée type ;</li>
+          <li>EDF écrit les communes en capitales sans accents : la jointure se fait par code INSEE, avec les noms officiels écrits dans le domaine.</li>
+        </ul>
+      </div>
+    </div>
+    <h3 class="font-semibold">Chargement et nettoyage</h3>
+    {% for name, q in page.sql.items() if q.etape %}
+    <details class="sql" id="sql-{{ name }}"><summary><b>{{ name }}</b> <span class="muted text-sm">{{ q.description }}</span></summary>
+      <pre class="code"><code class="language-sql">{{ q.sql }}</code></pre></details>{% endfor %}
+    <h3 class="font-semibold">Requêtes de la page</h3>
+    {% for name, q in page.sql.items() if not q.etape %}
+    <details class="sql" id="sql-{{ name }}"><summary><b>{{ name }}</b> <span class="muted text-sm">{{ q.description }}</span></summary>
+      <pre class="code"><code class="language-sql">{{ q.sql }}</code></pre></details>{% endfor %}
+  </section>
+  <script type="application/json" id="page-data">{{ page|tojson }}</script>
+{% endif %}
+</main>
+<script src="/static/energie.js?v={{ v }}"></script>
+</body>
+</html>

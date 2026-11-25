@@ -3,6 +3,7 @@
 Filtrage et agrégation faits côté serveur (select / where / group_by) : on ne rapatrie que l'utile.
     python -m app.infrastructure.opendata.fetch
 """
+import csv
 import gzip
 import io
 import json
@@ -78,6 +79,14 @@ IRCC_FILES: dict[str, str] = {
     "ircc_francophones_rmr": "ODP-French-speaking-PR-CMA.csv",  # résidents permanents d'expression française, hors Québec
     "ircc_rp_rmr": "ODP-PR-PT_CMA.csv",                         # tous les résidents permanents
 }
+# EDF à La Réunion (opendata-reunion.edf.fr, plateforme data-fair) : pages de 10 000 lignes, lien « next » fourni
+EDF = "https://opendata-reunion.edf.fr/data-fair/api/v1/datasets/{id}/lines"
+EDF_DATASETS: dict[str, str] = {
+    "edf_horaire": "p71tn4v1flbx5345oaj0xmfn",  # production par filière et coût moyen, au pas horaire, 2019-2024
+    "edf_annuel": "bgsxf72q0jmza3q4ed6qon2n",   # production annuelle validée par filière et part renouvelable, 2018-2024
+    "edf_co2": "zmuebeju721pnwjf7g6m1cdg",      # émissions annuelles de CO2 de la production électrique, 2014-2024
+    "edf_conso": "y-lrvrtj10y9rmewc5vigrh-",    # consommation annuelle par commune et secteur
+}
 _AGENT = {"User-Agent": "opendata-fetch/1.0"}  # les deux serveurs rejettent l'agent par défaut « Python-urllib » (403)
 
 # Recensement 2021 par ville (tableau 98-10-0192-01, 29 Mo zippé) : l'API web de Statistique Canada ne renvoie que les
@@ -114,7 +123,26 @@ def _get(url: str) -> bytes:
         return r.read()
 
 
+def _edf(dataset: str) -> bytes:
+    url = EDF.format(id=dataset) + "?size=10000"
+    lignes: list[dict] = []
+    while url:
+        page = json.loads(_get(url))
+        lignes += page["results"]
+        url = page.get("next") if page["results"] else None
+    champs = list(dict.fromkeys(k for l in lignes for k in l if not k.startswith("_")))  # une valeur vide est omise du JSON
+    out = io.StringIO()
+    w = csv.DictWriter(out, fieldnames=champs, extrasaction="ignore", lineterminator="\n")
+    w.writeheader()
+    w.writerows(lignes)
+    return out.getvalue().encode("utf-8")
+
+
 def fetch(name: str) -> Path:
+    if name in EDF_DATASETS:
+        out = RAW / f"{name}.csv"
+        out.write_bytes(_edf(EDF_DATASETS[name]))
+        return out
     if name in TABLES or name in TABLES_GZ:
         pid = TABLES.get(name) or TABLES_GZ[name]
         with zipfile.ZipFile(io.BytesIO(_get(STATCAN.format(pid=pid)))) as z:
@@ -143,6 +171,6 @@ def fetch(name: str) -> Path:
 
 if __name__ == "__main__":
     RAW.mkdir(parents=True, exist_ok=True)
-    for n in sys.argv[1:] or [*DATASETS, *FILES, *TABLES, *TABLES_GZ, *IRCC_FILES, "statcan_recensement_villes"]:
+    for n in sys.argv[1:] or [*DATASETS, *FILES, *TABLES, *TABLES_GZ, *IRCC_FILES, "statcan_recensement_villes", *EDF_DATASETS]:
         p = fetch(n)
         print(f"{n:22} {p.stat().st_size / 1024:9.0f} Ko")
