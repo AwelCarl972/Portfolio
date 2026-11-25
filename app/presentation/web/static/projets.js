@@ -106,7 +106,9 @@
 
   function afficher(r) {
     rang = r;
-    document.getElementById("mois").value = r;
+    const curseur = document.getElementById("mois");
+    curseur.value = r;
+    curseur.style.setProperty("--p", `${(100 * (r - curseur.min)) / ((curseur.max - curseur.min) || 1)}%`);
     marqueurs.forEach((m, i) => {
       const visible = sites[i].rang <= r;
       if (visible && !calque.hasLayer(m)) calque.addLayer(m);
