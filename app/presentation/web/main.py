@@ -1,11 +1,13 @@
 import os
+import re
 from pathlib import Path
 from typing import Annotated
 
 import duckdb
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
+from markupsafe import Markup, escape
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -52,10 +54,31 @@ def sante():
     return {"ok": True}
 
 
-@app.get("/", response_class=HTMLResponse)
-def index(request: Request, overview: Annotated[FleetOverview, Depends(get_overview)]):
+@app.get("/")
+def accueil():
+    """L'Observatoire ouvre le portfolio : des données réelles d'abord, la démo sur données simulées ensuite."""
+    return RedirectResponse("/observatoire", status_code=307)
+
+
+_ALIAS = re.compile(r"\b(?:ACTIF|LIEU|CLIENT|TEL|MAIL|REF)_[0-9A-Za-z]{2,16}\b")
+
+
+def _surligner(texte: str) -> Markup:
+    """Échappe le texte puis encadre les alias (ACTIF_3F2A…) : on voit d'un coup d'œil ce qui a été masqué."""
+    return Markup(_ALIAS.sub(lambda m: f'<mark class="alias">{m.group(0)}</mark>', str(escape(texte))))
+
+
+templates.env.filters["alias"] = _surligner
+
+
+@app.get("/parc", response_class=HTMLResponse)
+def parc(request: Request, overview: Annotated[FleetOverview, Depends(get_overview)]):
     risks, alerts = overview()
-    return templates.TemplateResponse(request, "index.html", {"risks": risks, "alerts": alerts})
+    data = {"risques": [{"plaque": r.plate, "libelle": r.label, "commune": r.commune, "score": r.risk_score,
+                         "niveau": risk_level(r.risk_score), "pannes": r.failures_12m,
+                         "cout": r.cost_12m, "derive": r.drift_ratio} for r in risks]}
+    return templates.TemplateResponse(request, "index.html", {"risks": risks, "alerts": alerts, "data": data,
+                                                              "sql": overview.sql()})
 
 
 _QUOTA = depuis_env()
@@ -66,16 +89,16 @@ _TEXTE_MAX = 3000  # un compte rendu d'intervention tient en quelques lignes ; a
 def analyze(request: Request, uc: Annotated[AnalyzeReport, Depends(get_analyze)],
             asset_id: Annotated[int | None, Form()] = None, text: Annotated[str, Form()] = ""):
     if len(text) > _TEXTE_MAX:
-        return HTMLResponse(f'<p class="text-red-600">Texte trop long : {_TEXTE_MAX} caractères au plus.</p>')
+        return HTMLResponse(f'<p class="erreur">Texte trop long : {_TEXTE_MAX} caractères au plus.</p>')
     # Le quota ne vaut que pour le vrai LLM : le simulateur ne coûte rien
     if os.getenv("ANTHROPIC_API_KEY"):
         refus = _QUOTA.refus(request.client.host if request.client else "inconnu")
         if refus:
-            return HTMLResponse(f'<p class="text-amber-600">{refus}</p>', status_code=429)
+            return HTMLResponse(f'<p class="erreur">{refus}</p>', status_code=429)
     try:
         result = uc(asset_id, text)
     except ValueError as e:
-        return HTMLResponse(f'<p class="text-red-600">{e}</p>')
+        return HTMLResponse(f'<p class="erreur">{escape(str(e))}</p>')
     return templates.TemplateResponse(request, "partials/analysis.html", {"a": result})
 
 

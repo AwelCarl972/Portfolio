@@ -125,7 +125,7 @@ ses entrées et répond en JSON.
   disponible en repli (`PRIVACY_ENGINE=python`).
 - Tests unitaires Rust : `cargo test` ; dépendances limitées à l'essentiel (`csv`, `flate2`, `hmac`, `sha2`, `fancy-regex`, `serde`).
 
-## 4. Parc & IA : maintenance prédictive et confidentialité (`/`)
+## 4. Parc & IA : maintenance prédictive et confidentialité (`/parc`)
 
 Gestion d'un parc de véhicules et d'engins (données simulées, réalistes pour La Réunion) : score de risque
 par actif, dérive des intervalles de panne, et **date limite de commande des pièces selon le fret maritime
@@ -197,7 +197,7 @@ python -m app.infrastructure.opendata.fetch       # ~22 Mo d'open data (Réunion
 python -m uvicorn app.presentation.web.main:app --reload
 ```
 
-Ouvrir http://127.0.0.1:8000/observatoire (dashboard), http://127.0.0.1:8000/francophonie et http://127.0.0.1:8000 (Parc & IA). Sans clé API,
+Ouvrir http://127.0.0.1:8000/observatoire (dashboard), http://127.0.0.1:8000/francophonie et http://127.0.0.1:8000/parc (Parc & IA). Sans clé API,
 un simulateur d'IA hors-ligne répond ; avec `ANTHROPIC_API_KEY` (et `pip install anthropic`), c'est un vrai LLM.
 Tests : `pytest` et `cargo test`.
 

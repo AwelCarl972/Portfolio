@@ -1,5 +1,5 @@
-<div class="overflow-x-auto"><table class="text-xs bg-white rounded shadow">
-  <thead><tr class="bg-slate-100 text-left"><th class="p-1">Alias</th><th>Type</th><th>Valeur réelle (locale)</th></tr></thead>
-  {% for r in rows %}<tr class="border-t"><td class="p-1 font-mono">{{ r.alias }}</td><td>{{ r.kind }}</td><td>{{ r.original }}</td></tr>
-  {% else %}<tr><td class="p-2" colspan="3">Vide : lancez une analyse.</td></tr>{% endfor %}
+<div class="tbl"><table>
+  <thead><tr><th>Code</th><th>Type</th><th>Valeur réelle (sur le serveur)</th></tr></thead>
+  {% for r in rows %}<tr><td><mark class="alias">{{ r.alias }}</mark></td><td>{{ r.kind }}</td><td>{{ r.original }}</td></tr>
+  {% else %}<tr><td colspan="3">Vide : lancez une analyse.</td></tr>{% endfor %}
 </table></div>

@@ -114,7 +114,7 @@ input and answers in JSON.
 A cross-test (pytest) proves the Rust and Python engines produce exactly the same anonymized text. The Python
 engine remains as a fallback (`PRIVACY_ENGINE=python`).
 
-## 4. Fleet & AI: predictive maintenance and privacy (`/`)
+## 4. Fleet & AI: predictive maintenance and privacy (`/parc`)
 
 Management of a fleet of vehicles and machinery (simulated data): risk score per asset, drift in failure intervals,
 and **the latest date to order parts by sea (30-45 days) or air freight (4-7 days)**. The AI writes the analysis of a
@@ -169,7 +169,7 @@ python -m app.infrastructure.opendata.fetch       # ~22 MB of open data, once
 python -m uvicorn app.presentation.web.main:app --reload
 ```
 
-Open http://127.0.0.1:8000/francophonie, http://127.0.0.1:8000/observatoire and http://127.0.0.1:8000.
+Open http://127.0.0.1:8000/francophonie, http://127.0.0.1:8000/observatoire and http://127.0.0.1:8000/parc.
 Without an API key an offline AI simulator answers; with `ANTHROPIC_API_KEY` (and `pip install anthropic`) it is a
 real LLM. Tests: `pytest` and `cargo test`.
 

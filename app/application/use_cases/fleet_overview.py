@@ -8,3 +8,6 @@ class FleetOverview:
 
     def __call__(self) -> tuple[list[RiskRow], list[SupplyAlert]]:
         return self.repo.risk_ranking(), self.repo.supply_alerts()
+
+    def sql(self) -> dict[str, str]:
+        return self.repo.sql()

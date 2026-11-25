@@ -2,87 +2,157 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ParcInsulaire — maintenance prédictive</title>
+  <title>Parc & IA — maintenance prédictive et IA sans fuite de données</title>
+  <meta name="description" content="Démo sur un parc de véhicules simulé à La Réunion : score de risque en SQL, date limite de commande des pièces (bateau ou avion) et analyse par IA de comptes rendus, anonymisés en local avant l'envoi.">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-  <script>
-    function tab(btn, name) {
-      const root = btn.closest('[data-tabs]');
-      root.querySelectorAll('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== name);
-      root.querySelectorAll('[data-btn]').forEach(b => b.classList.toggle('bg-slate-800', b.dataset.btn === name));
-      root.querySelectorAll('[data-btn]').forEach(b => b.classList.toggle('text-white', b.dataset.btn === name));
-    }
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+  <link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github.min.css">
+  <link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
+  <link rel="stylesheet" href="/static/theme.css?v={{ v }}">
+  <style>
+    .lecture { border-left: 3px solid var(--s1); padding: 4px 0 4px 12px; font-size: 14px; }
+    table.simple { width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+    table.simple th { text-align: left; color: var(--text-secondary); font-weight: 500; border-bottom: 1px solid var(--grid); padding: 4px 6px; }
+    table.simple td { border-bottom: 1px solid var(--grid); padding: 5px 6px; vertical-align: top; }
+    table.simple td.n, table.simple th.n { text-align: right; }
+    .pastille { display: inline-block; font-size: 11px; font-weight: 600; border-radius: 999px; padding: 1px 8px; white-space: nowrap; color: #fff; }
+    .p-crit { background: var(--div-pos); } .p-haut { background: var(--s2); } .p-moyen { background: var(--s4); } .p-ok { background: var(--s3); }
+    pre.txt { white-space: pre-wrap; background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 1.5; font-family: inherit; }
+    pre.txt.final { border-color: var(--s3); }
+    mark.alias { background: transparent; color: var(--s2); font-weight: 600; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+    .etape-num { display: inline-flex; width: 20px; height: 20px; border-radius: 999px; align-items: center; justify-content: center;
+                 font-size: 11px; font-weight: 700; background: var(--s1); color: #fff; margin-right: 4px; }
+    .btn { background: var(--s1); color: #fff; border-radius: 8px; padding: 6px 14px; font-size: 14px; font-weight: 500; }
+    .btn-ghost { border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; font-size: 13px; color: var(--text-secondary); }
+    .btn-ghost:hover { color: var(--text-primary); }
+    textarea, select.grand { width: 100%; background: var(--page); color: var(--text-primary); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+    .htmx-indicator { display: none; } .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display: inline; }
+    .erreur { color: var(--div-pos); font-size: 14px; }
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-800">
+<body class="viz-root">
 <header class="bg-slate-900 text-white px-4 sm:px-6 py-4">
-  <h1 class="text-xl font-bold">ParcInsulaire <span class="text-sky-300 font-normal">· maintenance prédictive à La Réunion</span></h1>
-  <p class="text-sm text-slate-300">Données anonymisées localement par un moteur <span class="text-orange-300">Rust</span> avant tout appel IA · SQL (DuckDB) · FastAPI + HTMX</p>
-  <nav class="mt-2 text-sm"><span class="font-semibold">Parc & IA</span> · <a class="underline text-sky-300" href="/observatoire">Observatoire Réunion (open data)</a> · <a class="underline text-sky-300" href="/francophonie">Francophonie Canada</a> · <a class="underline text-sky-300" href="/projets">Projets (Le Wagon, trading)</a> · <a class="underline text-sky-300" href="/cv">CV</a></nav>
+  <h1 class="text-xl font-bold">Parc & IA <span class="text-sky-300 font-normal">· maintenance prédictive et IA sans fuite de données</span></h1>
+  <p class="text-sm text-slate-300">Démo sur un parc simulé à La Réunion · SQL DuckDB → ECharts · anonymisation locale en <span class="text-orange-300">Rust</span> → Claude</p>
+  <nav class="mt-2 text-sm"><a class="underline text-sky-300" href="/observatoire">Observatoire Réunion</a> · <a class="underline text-sky-300" href="/francophonie">Francophonie Canada</a> · <span class="font-semibold">Parc & IA</span> · <a class="underline text-sky-300" href="/projets">Projets</a> · <a class="underline text-sky-300" href="/cv">CV</a></nav>
 </header>
-<main class="max-w-6xl mx-auto px-3 py-4 sm:p-6 space-y-8">
 
-  <section>
-    <h2 class="font-semibold text-lg mb-2">Risque du parc <span class="text-sm font-normal text-slate-500">(dérive de pannes, coût, immobilisation)</span></h2>
-    <div class="overflow-x-auto bg-white rounded shadow">
-    <table class="w-full text-sm">
-      <thead class="bg-slate-100 text-left"><tr>
-        <th class="p-2">Actif</th><th class="hidden md:table-cell">Client</th><th class="hidden sm:table-cell">Site</th><th class="hidden lg:table-cell">Km</th><th class="hidden sm:table-cell">Pannes 12m</th><th class="hidden md:table-cell">Coût 12m</th><th class="hidden lg:table-cell">Dérive</th><th>Risque</th><th></th></tr></thead>
-      <tbody>
-      {% for r in risks %}
-        {% set lvl = risk_level(r.risk_score) %}
-        <tr class="border-t">
-          <td class="p-2">{{ r.label }}<div class="text-xs text-slate-500">{{ r.plate }}</div></td>
-          <td class="hidden md:table-cell">{{ r.client }}</td><td class="hidden sm:table-cell">{{ r.commune }}</td>
-          <td class="hidden lg:table-cell">{{ "{:,}".format(r.km_current).replace(",", " ") }}</td>
-          <td class="hidden sm:table-cell">{{ r.failures_12m }}</td><td class="hidden md:table-cell">{{ "%.0f"|format(r.cost_12m) }} €</td>
-          <td class="hidden lg:table-cell">{{ r.drift_ratio if r.drift_ratio is not none else "–" }}</td>
-          <td><span class="px-2 py-0.5 rounded text-white text-xs
-              {{ 'bg-red-600' if lvl == 'CRITIQUE' else 'bg-orange-500' if lvl == 'ÉLEVÉ' else 'bg-yellow-500' if lvl == 'À SURVEILLER' else 'bg-green-600' }}">
-              {{ r.risk_score }} · {{ lvl }}</span></td>
-          <td><button class="text-sky-700 underline" hx-post="/analyze" hx-vals='{"asset_id": {{ r.id }}}'
-                      hx-target="#result" hx-indicator="#spin">Analyser</button></td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table></div>
+<main class="max-w-7xl mx-auto px-3 py-4 sm:p-6 space-y-5">
+  {% set critiques = risks | selectattr("risk_score", "ge", 45) | list %}
+  {% set urgentes = alerts | selectattr("status", "in", ["COMMANDER_AIR", "RUPTURE_PROBABLE"]) | list %}
+  {% macro n(v) %}{{ "{:,.0f}".format(v).replace(",", " ") }}{% endmacro %}
+
+  <p class="lecture">Une entreprise réunionnaise gère des camions et des engins de chantier. Ici, une pièce met <b>30 à 45 jours</b>
+    à arriver par bateau, et l'avion coûte bien plus cher. Il faut donc savoir <b>quel véhicule risque de lâcher</b> et
+    <b>quand commander ses pièces</b>. Les techniciens écrivent aussi des comptes rendus qu'une IA pourrait résumer, mais ils
+    contiennent des noms de clients, des adresses et des téléphones.
+    <span class="muted">Entreprise et données simulées, mais vraisemblables : communes, délais et pannes de La Réunion.</span></p>
+
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div class="tile"><div class="tile-label">Véhicules suivis</div><div class="tile-value">{{ risks|length }}</div>
+      <div class="tile-sub muted">camions, utilitaires et engins</div></div>
+    <div class="tile"><div class="tile-label">À traiter en priorité</div><div class="tile-value">{{ critiques|length }}</div>
+      <div class="tile-sub muted">score de risque ≥ 45 sur 100</div></div>
+    <div class="tile"><div class="tile-label">Pièces à commander par avion</div><div class="tile-value">{{ urgentes|length }}</div>
+      <div class="tile-sub muted">le bateau arriverait trop tard</div></div>
+    <div class="tile"><div class="tile-label">Coût des réparations</div><div class="tile-value">{{ n(risks|sum(attribute="cost_12m")) }} €</div>
+      <div class="tile-sub muted">sur les 12 derniers mois</div></div>
+  </div>
+
+  <div class="grid lg:grid-cols-5 gap-4">
+    <div class="card lg:col-span-3" data-chart="risque" data-sql="fleet_risk">
+      <h3>Quels véhicules surveiller</h3>
+      <p class="sub">Score de 0 à 100 : pannes de plus en plus rapprochées (40 %), coût des réparations (30 %) et jours d'immobilisation (30 %) sur 12 mois
+        · cliquez une barre pour faire analyser son dernier compte rendu par l'IA</p>
+      <div class="chart chart-tall"></div>
+    </div>
+    <div class="card lg:col-span-2" data-sql="supply_alerts">
+      <h3>Quand commander les pièces</h3>
+      <p class="sub">Pièces à changer dans les 120 jours, confrontées au stock et aux délais : bateau 30-45 j, avion 4-7 j</p>
+      <div class="overflow-x-auto"><table class="simple">
+        <thead><tr><th>Véhicule</th><th>Pièce</th><th class="hidden sm:table-cell">À changer le</th><th>Décision</th></tr></thead>
+        <tbody>
+        {% for a in alerts %}
+          {% set s = status_label(a.status) %}
+          <tr><td class="whitespace-nowrap">{{ a.plate }}</td><td>{{ a.part_label }}</td>
+            <td class="hidden sm:table-cell whitespace-nowrap">{{ a.due_date.strftime("%d/%m/%Y") }}</td>
+            <td><span class="pastille {{ {'ok':'p-ok','warn':'p-moyen','bad':'p-haut','crit':'p-crit'}[s[1]] }}">{{
+              {'COUVERT_STOCK':'En stock','COMMANDER_MER':'Bateau','COMMANDER_AIR':'Avion','RUPTURE_PROBABLE':'Rupture'}.get(a.status, s[0]) }}</span>
+              {% if a.status == 'COMMANDER_MER' %}<div class="text-xs muted mt-0.5">avant {{ a.days_left_to_order }} j</div>{% endif %}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      <p class="text-xs muted mt-2"><b>Bateau</b> : on a encore le temps · <b>Avion</b> : le bateau arriverait trop tard ·
+        <b>Rupture</b> : même l'avion arriverait trop tard, il faut prévoir un véhicule de remplacement.</p>
+    </div>
+  </div>
+
+  <!-- ============ IA ============ -->
+  <section class="space-y-3" id="ia">
+    <h2 class="text-lg font-semibold">L'IA lit les comptes rendus, sans jamais voir un nom</h2>
+    <div class="flow">
+      <div class="flow-step"><b><span class="etape-num">1</span>Le technicien écrit</b>« Camion FG-482-RT de Transports Payet, fuite injecteur, 0262 42 18 07 »</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step rust-step"><b><span class="etape-num">2</span>Masquage sur le serveur</b>Un programme en <span class="badge rust-badge">Rust</span>
+        remplace plaques, clients, adresses et téléphones par des codes : <mark class="alias">ACTIF_3F2A</mark>, <mark class="alias">CLIENT_9C01</mark>…</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><b><span class="etape-num">3</span>Claude répond</b>Il ne reçoit que des codes et rend un diagnostic : synthèse, cause probable, actions, bateau ou avion.</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><b><span class="etape-num">4</span>Les vrais noms reviennent</b>La table codes → noms reste sur le serveur ; le technicien lit une réponse complète.</div>
+    </div>
+
+    <div class="card space-y-3">
+      <h3>Essayer</h3>
+      <div class="grid md:grid-cols-2 gap-4">
+        <form hx-post="/analyze" hx-target="#result" hx-indicator="#spin" class="space-y-2">
+          <label class="sub block" for="vehicule">Analyser le dernier compte rendu d'un véhicule</label>
+          <select class="grand" id="vehicule" name="asset_id">
+            {% for r in risks %}<option value="{{ r.id }}">{{ r.plate }} · {{ r.label }} · risque {{ r.risk_score }}</option>{% endfor %}
+          </select>
+          <button class="btn">Analyser ce véhicule</button>
+        </form>
+        <form hx-post="/analyze" hx-target="#result" hx-indicator="#spin" class="space-y-2">
+          <label class="sub block" for="texte">… ou écrire votre propre compte rendu</label>
+          <textarea id="texte" name="text" rows="3" maxlength="3000"
+            placeholder="Ex. : OT-4999 — Transports Payet Express. Camion FG-482-RT immobilisé au 12 chemin des Lataniers, Le Port. Fuite injecteur à 85 000 km. Contact : 0262 42 18 07."></textarea>
+          <div class="flex gap-2 flex-wrap"><button class="btn">Analyser ce texte</button>
+            <button type="button" class="btn-ghost" id="exemple">Remplir avec un exemple</button></div>
+        </form>
+      </div>
+      <p class="text-sm muted"><span id="spin" class="htmx-indicator">Analyse en cours…</span></p>
+      <div id="result"></div>
+    </div>
   </section>
 
-  <section>
-    <h2 class="font-semibold text-lg mb-2">Approvisionnement : quand commander ? <span class="text-sm font-normal text-slate-500">(mer 30-45 j vs air 4-7 j)</span></h2>
-    <div class="overflow-x-auto bg-white rounded shadow">
-    <table class="w-full text-sm">
-      <thead class="bg-slate-100 text-left"><tr><th class="p-2">Actif</th><th>Pièce</th><th class="hidden md:table-cell">Échéance</th><th class="hidden sm:table-cell">Stock</th><th class="hidden sm:table-cell">Limite commande (mer)</th><th>Statut</th></tr></thead>
-      <tbody>
-      {% for a in alerts %}
-        {% set s = status_label(a.status) %}
-        <tr class="border-t">
-          <td class="p-2">{{ a.plate }}</td><td>{{ a.part_ref }} — {{ a.part_label }}</td>
-          <td class="hidden md:table-cell">{{ a.due_date }} <span class="text-xs text-slate-500">({{ a.due_km }} km)</span></td>
-          <td class="hidden sm:table-cell">{{ a.stock_qty }}</td>
-          <td class="hidden sm:table-cell">{{ a.days_left_to_order }} j</td>
-          <td class="{{ {'ok':'text-green-700','warn':'text-yellow-700','bad':'text-orange-600 font-semibold','crit':'text-red-600 font-bold'}[s[1]] }}">{{ s[0] }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table></div>
-  </section>
-
-  <section class="bg-white rounded shadow p-4">
-    <h2 class="font-semibold text-lg mb-2">Analyse IA d'un compte-rendu <span class="text-sm font-normal text-slate-500">(texte libre ou bouton « Analyser » ci-dessus)</span></h2>
-    <form hx-post="/analyze" hx-target="#result" hx-indicator="#spin" class="space-y-2">
-      <textarea name="text" rows="4" class="w-full border rounded p-2 text-sm"
-        placeholder="Ex. : OT-4999 — Transports Payet Express. Camion FG-482-RT immobilisé au 12 chemin des Lataniers, Le Port. Fuite injecteur à 85 000 km. Contact : 0262 42 18 07."></textarea>
-      <button class="bg-slate-800 text-white px-4 py-1 rounded">Analyser</button>
-      <span id="spin" class="htmx-indicator text-sm text-slate-500">Analyse…</span>
-    </form>
-    <div id="result" class="mt-4"></div>
-  </section>
-
-  <section>
-    <button class="text-sm underline text-slate-600" hx-get="/privacy-map" hx-target="#map">Voir la table de correspondance locale (jamais envoyée à l'IA)</button>
-    <div id="map" class="mt-2"></div>
-  </section>
+  <div class="grid lg:grid-cols-2 gap-4">
+    <div class="card">
+      <h3>Pourquoi c'est utile à un employeur</h3>
+      <ul class="text-sm list-disc ml-5 space-y-1 mt-2">
+        <li><b>Une règle métier écrite en SQL</b>, lisible et vérifiable : le score de risque et la date limite de commande se relisent
+          sous les boutons <i>SQL</i>, au lieu d'être cachés dans un tableur.</li>
+        <li><b>Une contrainte de l'île prise au sérieux</b> : le délai du bateau décide de ce qu'il faut commander aujourd'hui.</li>
+        <li><b>L'IA sans risque RGPD</b> : aucune donnée personnelle ne quitte le serveur. C'est la condition pour qu'une entreprise
+          ose confier ses comptes rendus à une IA.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Limites</h3>
+      <ul class="text-sm list-disc ml-5 space-y-1 mt-2">
+        <li>Les données sont simulées : le score n'a pas été confronté à de vraies pannes.</li>
+        <li>Le masquage repose sur la liste des clients, plaques et adresses connus, plus des motifs (téléphones, e-mails). Un nom
+          inconnu écrit en toutes lettres passerait.</li>
+        <li>Sans clé API, une IA simulée répond (gratuit). Avec la clé, les analyses sont plafonnées : 5 par visiteur et par heure,
+          100 par jour.</li>
+      </ul>
+      <button class="btn-ghost mt-3" hx-get="/privacy-map" hx-target="#map">Voir la table codes → vrais noms (jamais envoyée à l'IA)</button>
+      <div id="map" class="mt-2"></div>
+    </div>
+  </div>
 </main>
+<script type="application/json" id="page-data">{{ data | tojson }}</script>
+<script type="application/json" id="page-sql">{{ sql | tojson }}</script>
+<script src="/static/parc.js?v={{ v }}"></script>
 </body>
 </html>

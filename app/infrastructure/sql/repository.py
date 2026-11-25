@@ -50,6 +50,10 @@ class DuckFleetRepository:
     def supply_alerts(self) -> list[SupplyAlert]:
         return [SupplyAlert(**r) for r in self.db.rows(self.db.q["supply_alerts"])]
 
+    def sql(self) -> dict[str, str]:
+        """Le SQL tel qu'exécuté, pour l'afficher sous les graphiques."""
+        return {k: self.db.q[k] for k in ("fleet_risk", "supply_alerts")}
+
     def latest_report(self, asset_id: int) -> str | None:
         rows = self.db.rows(self.db.q["latest_report"], (asset_id,))
         return rows[0]["report"] if rows else None
