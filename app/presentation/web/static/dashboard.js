@@ -307,7 +307,7 @@
     const forte = rows[rows.length - 1];
     const overlap = rows.every(r => r.acc_par_jour - r.ic95 <= rows[0].acc_par_jour + rows[0].ic95);
     document.getElementById("pluie-stats").innerHTML =
-      `Jours de forte pluie : risque relatif <b>×${fmt(forte.risque_relatif, 2)}</b> vs jours secs · corrélation quotidienne r = ${fmt(forte.corr_jour, 3)} · `
+      `Jours de forte pluie : risque relatif <b>×${fmt(forte.risque_relatif, 2)}</b> par rapport aux jours secs · corrélation quotidienne r = ${fmt(forte.corr_jour, 3)} · `
       + (overlap ? "<b>intervalles de confiance chevauchants : pas d'effet significatif</b> à ce niveau d'agrégation." : "écart significatif au seuil de 95 %.");
     mount("pluie", {
       ...base(t),

@@ -64,7 +64,7 @@
   <section role="tabpanel" id="tab-bornes" class="space-y-4">
     <p class="lecture">Projet final de ma formation Le Wagon (2025) : la France a mis en service <b>{{ "{:,}".format(k.points_2023).replace(",", " ") }} points de charge en 2023</b>,
       soit {{ k.part_2023|int }} % de tout le parc ouvert depuis 2010. La version d'origine (Google Sheets, Python pandas et NumPy, Looker Studio, carte Leaflet)
-      est reprise ici avec ses données, nettoyées en SQL et comptées.</p>
+      est reprise ici avec ses données, nettoyées en SQL, chaque ligne écartée étant comptée.</p>
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <div class="tile"><div class="tile-label">Points de charge</div><div class="tile-value">{{ "{:,}".format(k.points).replace(",", " ") }}</div>
         <div class="tile-sub muted">sur {{ "{:,}".format(k.sites).replace(",", " ") }} sites · {{ k.debut }} → {{ k.fin }}</div></div>
@@ -110,7 +110,7 @@
           <li>les dates de 1930 et 2002 étaient masquées par un filtre « après 2014 » sans être comptées : elles sont maintenant écartées et visibles ;</li>
           <li>la vue par trimestre lisait des clés « 2025-Q%q » : le trimestre est recalculé en SQL depuis le mois ;</li>
           <li>une puissance de 0 kW n'est pas une borne à 0 kW mais une valeur manquante ;</li>
-          <li>la carte redessinait jusqu'à 126 790 marqueurs à chaque image : 30 113 sites, dessinés une fois.</li>
+          <li>la carte redessinait jusqu'à 126 790 marqueurs à chaque image : elle dessine maintenant 30 113 sites, une seule fois.</li>
         </ul>
       </div>
     </div>
@@ -122,7 +122,7 @@
     <p class="lecture">Jusqu'en 2022, j'ai écrit des robots de trading en MQL5 et lancé
       <b>{{ "{:,}".format(T.resume|sum(attribute="passes")).replace(",", " ") }} tests de paramètres</b> sous MetaTrader 5.
       Relus aujourd'hui avec un œil d'analyste, ils montrent surtout un piège : sur un mois de données, les meilleurs réglages reposent
-      sur une poignée de trades, et ceux qui tradent vraiment perdent.</p>
+      sur une poignée de trades, et les réglages qui passent beaucoup d'ordres perdent presque tous.</p>
     <div class="card" data-sql="trading_resume">
       <h3>Les trois optimisations</h3>
       <p class="sub">Comptes de démonstration, 100 000 € de capital simulé · une passe = un jeu de paramètres testé</p>

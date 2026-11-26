@@ -4,8 +4,8 @@
 
 **Portfolio Data Analyst · La Réunion** — SQL avancé · Power BI · Rust · Python · tableaux de bord web sans licence BI
 
-> 8 jeux de données publiques réunionnaises (immobilier, emploi, sécurité routière, climat) :
-> téléchargés, profilés, nettoyés, modélisés et restitués, **avec chaque ligne de SQL visible dans l'interface.**
+> Des données publiques réunionnaises et canadiennes (immobilier, emploi, climat, électricité, marchés de travaux,
+> francophonie) téléchargées, profilées, nettoyées, modélisées et restituées, **avec chaque ligne de SQL visible dans l'interface.**
 > Plus un module IA qui traite des données d'entreprise **sans jamais les exposer**.
 >
 > Installation à La Réunion sous 30 jours · CDI / CDD · Data Analyst, outils data, automatisation IA.
@@ -208,7 +208,7 @@ Deux travaux antérieurs, rechargés dans la même chaîne (CSV → SQL DuckDB �
   à 2025, sur 30 113 sites. Carte animée mois par mois, graphique annuel par classe de puissance. En reprenant le
   projet : 3 dates aberrantes (1930, 2002) écartées et comptées au lieu d'être masquées, trimestres recalculés en
   SQL (les clés d'origine « 2025-Q%q » étaient cassées), 6 925 puissances à 0 kW traitées comme inconnues, et une
-  carte qui dessine 30 113 sites une fois au lieu de 126 790 marqueurs à chaque image.
+  carte qui dessine 30 113 sites une seule fois, au lieu de 126 790 marqueurs à chaque image.
 - **Trading algorithmique (MQL5, jusqu'en 2022).** 9 943 passes d'optimisation MetaTrader 5 sur trois robots.
   Constat : sur un mois de données, les meilleurs réglages reposent sur une vingtaine de trades, et les passes
   à plus de 100 trades perdent presque toutes. Un backtest au facteur de profit de 9 tient sur un seul trade
@@ -228,10 +228,10 @@ python -m app.infrastructure.projets.importer --lewagon <dossier ProjetFinal> --
 ```
 app/
 ├─ domain/                 # métier pur : modèles, ports (Protocols), règles, référentiel territorial
-├─ application/use_cases/  # orchestration : territory_dashboard, francophonie, analyze_report, fleet_overview, projets
+├─ application/use_cases/  # orchestration : territory_dashboard, energie, btp, francophonie, analyze_report, fleet_overview, projets
 ├─ infrastructure/
 │  ├─ sql/                 # *.sql (chargement, vues, requêtes nommées) + adaptateurs DuckDB
-│  ├─ opendata/fetch.py    # téléchargement open data (Région Réunion, Météo-France, Statistique Canada)
+│  ├─ opendata/fetch.py    # téléchargement open data (Région Réunion, Météo-France, EDF, DECP, SIRENE, Statistique Canada)
 │  ├─ privacy/             # pseudonymisation Python + pont vers le moteur Rust
 │  ├─ ai/                  # LLM Anthropic ou simulateur hors-ligne
 │  └─ seed.py              # données simulées du parc
@@ -252,7 +252,7 @@ python -m app.infrastructure.opendata.fetch       # ~27 Mo d'open data (Réunion
 python -m uvicorn app.presentation.web.main:app --reload
 ```
 
-Ouvrir http://127.0.0.1:8000 (accueil), http://127.0.0.1:8000/energie, http://127.0.0.1:8000/observatoire (dashboard), http://127.0.0.1:8000/francophonie et http://127.0.0.1:8000/parc (Parc & IA). Sans clé API,
+Ouvrir http://127.0.0.1:8000 (accueil), puis `/observatoire`, `/energie`, `/btp`, `/francophonie`, `/parc` et `/projets`. Sans clé API,
 un simulateur d'IA hors-ligne répond ; avec `ANTHROPIC_API_KEY` (et `pip install anthropic`), c'est un vrai LLM.
 Tests : `pytest` et `cargo test`.
 
@@ -263,8 +263,8 @@ Tests : `pytest` et `cargo test`.
 - **Data & développement** : 2 ans de développement web (PHP/Symfony, WordPress en code pur sans plugin),
   architecture modulaire, SOLID, Clean Architecture, débogage de problèmes complexes. Aujourd'hui : SQL
   avancé, Rust, Python et une utilisation quotidienne de l'IA pour aller plus vite.
-- **Méthode** : un « fainéant intelligent ». Aucune tâche répétitive qui pourrait être automatisée, pas d'usine
-  à gaz, le chemin le plus court vers un résultat fiable et maintenable.
+- **Méthode** : un « fainéant intelligent ». Je ne refais pas à la main ce qui peut être automatisé, j'évite les usines
+  à gaz et je cherche le chemin le plus court vers un résultat fiable et maintenable.
 - **Terrain** : conducteur de travaux et maçon (chiffrage, marges, approvisionnements), diagnostiqueur
   immobilier (audits, conformité, rapports), gestion de parc et expertise de camping-cars (maintenance,
   pièces, sinistralité). Je comprends les données parce que j'ai fait les métiers qui les produisent.
@@ -273,5 +273,5 @@ Tests : `pytest` et `cargo test`.
 - **Rigueur** : directeur d'école de tir et instructeur bénévole depuis 5 ans. Sécurité stricte, pédagogie,
   jeunes tireurs accompagnés jusqu'aux Championnats de France 10 m.
 - **Langues** : français langue maternelle, anglais intermédiaire (B1), en progression.
-- **Disponibilité** : installation à La Réunion sous 30 jours, ou au Canada hors Québec, CDI ou CDD. Je préfère vous montrer ce projet
-  en direct plutôt que passer un test en ligne.
+- **Disponibilité** : installation à La Réunion sous 30 jours, ou au Canada hors Québec, CDI ou CDD. Je vous présente volontiers ce projet
+  en direct.

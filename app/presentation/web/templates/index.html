@@ -44,7 +44,7 @@
   {% set urgentes = alerts | selectattr("status", "in", ["COMMANDER_AIR", "RUPTURE_PROBABLE"]) | list %}
   {% macro n(v) %}{{ "{:,.0f}".format(v).replace(",", " ") }}{% endmacro %}
 
-  <p class="lecture">Une entreprise réunionnaise gère des camions et des engins de chantier. Ici, une pièce met <b>30 à 45 jours</b>
+  <p class="lecture">Une entreprise réunionnaise gère des camions et des engins de chantier. Sur l'île, une pièce met <b>30 à 45 jours</b>
     à arriver par bateau, et l'avion coûte bien plus cher. Il faut donc savoir <b>quel véhicule risque de lâcher</b> et
     <b>quand commander ses pièces</b>. Les techniciens écrivent aussi des comptes rendus qu'une IA pourrait résumer, mais ils
     contiennent des noms de clients, des adresses et des téléphones.
@@ -65,7 +65,7 @@
     <div class="card lg:col-span-3" data-chart="risque" data-sql="fleet_risk">
       <h3>Quels véhicules surveiller</h3>
       <p class="sub">Score de 0 à 100 : pannes de plus en plus rapprochées (40 %), coût des réparations (30 %) et jours d'immobilisation (30 %) sur 12 mois
-        · cliquez une barre pour faire analyser son dernier compte rendu par l'IA</p>
+        · cliquez sur une barre pour faire analyser son dernier compte rendu par l'IA</p>
       <div class="chart chart-tall"></div>
     </div>
     <div class="card lg:col-span-2" data-sql="supply_alerts">
@@ -141,9 +141,9 @@
       <h3>Limites</h3>
       <ul class="text-sm list-disc ml-5 space-y-1 mt-2">
         <li>Les données sont simulées : le score n'a pas été confronté à de vraies pannes.</li>
-        <li>Le masquage repose sur la liste des clients, plaques et adresses connus, plus des motifs (téléphones, e-mails). Un nom
-          inconnu écrit en toutes lettres passerait.</li>
-        <li>Sans clé API, une IA simulée répond (gratuit). Avec la clé, les analyses sont plafonnées : 5 par visiteur et par heure,
+        <li>Le masquage repose sur la liste des clients, plaques et adresses connus, plus des motifs (téléphones, e-mails). Un nom absent
+          de cette liste passerait sans être masqué.</li>
+        <li>Sans clé API, c'est une IA simulée qui répond, sans frais. Avec la clé, les analyses sont plafonnées : 5 par visiteur et par heure,
           100 par jour.</li>
       </ul>
       <button class="btn-ghost mt-3" hx-get="/privacy-map" hx-target="#map">Voir la table codes → vrais noms (jamais envoyée à l'IA)</button>

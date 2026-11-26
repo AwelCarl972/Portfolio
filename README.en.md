@@ -5,7 +5,7 @@
 **Data Analyst portfolio** · advanced SQL · Rust · Python · web dashboards without a BI licence
 
 > Public datasets from Canada (Statistics Canada, 70 years of census data) and from Reunion Island
-> (real estate, employment, road safety, climate): downloaded, profiled, cleaned, modelled and presented,
+> (real estate, employment, road safety, climate, electricity, public works): downloaded, profiled, cleaned, modelled and presented,
 > **with every line of SQL visible in the interface.**
 > Plus an AI module that processes business data **without ever exposing it**.
 >
@@ -184,10 +184,10 @@ Raw text ──► Local masking (Rust) ──► Anonymized payload ──► L
 ```
 app/
 ├─ domain/                 # pure business code: models, ports (Protocols), rules, reference data
-├─ application/use_cases/  # orchestration: francophonie, territory_dashboard, analyze_report, fleet_overview, projets
+├─ application/use_cases/  # orchestration: francophonie, territory_dashboard, energie, btp, analyze_report, fleet_overview, projets
 ├─ infrastructure/
 │  ├─ sql/                 # *.sql (loading, views, named queries) + DuckDB adapters
-│  ├─ opendata/fetch.py    # open-data downloads (Statistics Canada, Reunion Region, Météo-France)
+│  ├─ opendata/fetch.py    # open-data downloads (Statistics Canada, Reunion Region, Météo-France, EDF, DECP, SIRENE)
 │  ├─ privacy/             # Python pseudonymization + bridge to the Rust engine
 │  ├─ ai/                  # Anthropic LLM or offline simulator
 │  └─ seed.py              # simulated fleet data
@@ -208,7 +208,7 @@ python -m app.infrastructure.opendata.fetch       # ~27 MB of open data, once
 python -m uvicorn app.presentation.web.main:app --reload
 ```
 
-Open http://127.0.0.1:8000 (home), http://127.0.0.1:8000/energie, http://127.0.0.1:8000/francophonie, http://127.0.0.1:8000/observatoire and http://127.0.0.1:8000/parc.
+Open http://127.0.0.1:8000 (home), then `/francophonie`, `/energie`, `/btp`, `/observatoire`, `/parc` and `/projets`.
 Without an API key an offline AI simulator answers; with `ANTHROPIC_API_KEY` (and `pip install anthropic`) it is a
 real LLM. Tests: `pytest` and `cargo test`.
 
@@ -219,8 +219,8 @@ real LLM. Tests: `pytest` and `cargo test`.
 - **Data & development**: certified AI & Big Data developer (Le Wagon, French state certification, bachelor's level);
   2 years of web development (PHP/Symfony, WordPress from scratch); modular architecture, SOLID, Clean Architecture.
   Today: advanced SQL, Rust, Python, and daily use of AI to move faster.
-- **Method**: a "smart lazy" person. No repetitive task that could be automated, no over-engineering, the shortest
-  path to a reliable and maintainable result.
+- **Method**: a "smart lazy" person. I don't redo by hand what can be automated, I avoid over-engineering, and I look
+  for the shortest path to a reliable and maintainable result.
 - **Field experience**: construction site manager and mason (estimating, margins, supply), real-estate diagnostician
   (audits, compliance, reports), fleet management and motorhome assessment (maintenance, parts, claims). I understand
   the data because I have done the jobs that produce it.
@@ -228,4 +228,4 @@ real LLM. Tests: `pytest` and `cargo test`.
 - **Rigour**: volunteer shooting-school director and instructor for 5 years: strict safety, teaching, young shooters
   coached up to the French national championships.
 - **Languages**: French (native), English (intermediate, B1), learning fast in practice.
-- **Availability**: ready to relocate with my family. I would rather show you this project live than take an online test.
+- **Availability**: ready to relocate with my family. I would be glad to walk you through this project live.

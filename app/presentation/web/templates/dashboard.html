@@ -115,7 +115,7 @@
     <p class="text-sm muted">Analyses sur les 24 communes, non filtrées : un filtre par micro-région réduirait trop l'échantillon.</p>
     <div class="grid lg:grid-cols-2 gap-4">
       {% call card("corr", "Matrice de corrélation entre indicateurs communaux", "", "corr_matrix", "24 communes", "chart-tall") %}
-        <p class="sub -mt-1">Cliquez une case pour afficher le nuage de points ·
+        <p class="sub -mt-1">Cliquez sur une case pour afficher le nuage de points ·
           <button class="underline" id="corr-toggle">coefficient : <b>Pearson</b></button> · n par paire au survol</p>{% endcall %}
       {% call card("scatter", "Nuage de points & régression linéaire", "", "pair", "24 communes", "chart-tall") %}
         <p class="sub flex flex-wrap gap-2 items-center -mt-1"><select id="sx"></select> <span>→</span> <select id="sy"></select></p>
@@ -153,7 +153,7 @@
         <div class="flow-arrow">→</div>
         <div class="flow-step"><b>5 · Requêtes nommées</b>{{ L.queries|length }} requêtes paramétrées (<code class="inline">$region</code>).<br><code class="inline">territory_queries.sql</code></div>
         <div class="flow-arrow">→</div>
-        <div class="flow-step"><b>6 · Cas d'usage → JSON → ECharts</b>Python assemble, ne calcule rien. Le navigateur ne fait que dessiner.<br><code class="inline">territory_dashboard.py</code></div>
+        <div class="flow-step"><b>6 · Cas d'usage → JSON → ECharts</b>Python assemble sans rien calculer, et le navigateur ne fait que dessiner.<br><code class="inline">territory_dashboard.py</code></div>
       </div>
     </div>
 

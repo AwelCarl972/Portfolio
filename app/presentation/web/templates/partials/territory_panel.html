@@ -1,6 +1,6 @@
 {% set k = panel.kpis %}
 {% macro delta(v, unit='%') -%}
-  {%- if v is not none -%}<span class="text-[color:var(--text-secondary)]">{{ '▲' if v > 0 else '▼' if v < 0 else '=' }} {{ '%+.1f'|format(v) }}{{ unit }}</span>{%- endif -%}
+  {%- if v is not none -%}<span class="text-[color:var(--text-secondary)]">{{ '▲' if v > 0 else '▼' if v < 0 else '=' }} {{ ('%+.1f'|format(v))|replace(".", ",") }} {{ unit }}</span>{%- endif -%}
 {%- endmacro %}
 <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
   <div class="tile"><div class="tile-label">Population (2016)</div>

@@ -61,7 +61,7 @@
 
     <div class="grid lg:grid-cols-2 gap-4">
       <div class="card" data-chart="paradoxe" data-sql="fr_paradoxe">
-        <h3>Plus nombreux, mais moins visibles</h3>
+        <h3>Plus nombreux, mais une part qui fond</h3>
         <p class="sub">Canada hors Québec · indice 100 = 1951 · effectif de langue maternelle française contre population totale</p>
         <div class="chart"></div>
       </div>
@@ -180,7 +180,7 @@
   {% set sud = vt|selectattr("code", "equalto", "SUD")|first %}{% set tor = vt|selectattr("code", "equalto", "TOR")|first %}
   {% set van = vt|selectattr("code", "equalto", "VAN")|first %}
   <section role="tabpanel" id="tab-choisir" class="space-y-4" hidden>
-    <p class="lecture">Neuf villes où vivre en anglais ou en français hors Québec, comparées sur <b>11 indicateurs officiels</b> regroupés en quatre
+    <p class="lecture">Neuf villes hors Québec, comparées sur <b>11 indicateurs officiels</b> regroupés en quatre
       piliers : francophonie, coût de la vie, emploi, cadre de vie. Chaque indicateur est ramené sur 100 (la meilleure des neuf villes = 100,
       la moins bonne = 0). Les poids sont à vous : déplacez les curseurs.</p>
     <div class="card" data-chart="classement" data-sql="fr_villes_classement">
@@ -191,7 +191,7 @@
     </div>
     <div class="grid lg:grid-cols-2 gap-4">
       <div class="card" data-chart="parallele" data-sql="fr_villes_notes_q">
-        <h3>Le parallèle, indicateur par indicateur</h3>
+        <h3>Les villes côte à côte, indicateur par indicateur</h3>
         <p class="sub">Une ligne par ville · chaque axe est orienté pour que <b>le haut soit toujours le mieux</b> (axes marqués ↓ inversés : loyer, panier, chômage, criminalité) · choisissez jusqu'à 4 villes</p>
         <div class="flex flex-wrap gap-2" id="villes-sel"></div>
         <div class="chart chart-tall"></div>
@@ -234,7 +234,7 @@
             un indice de criminalité de {{ p(mon.criminalite, 0) }}, au-dessus de la moyenne canadienne, et un marché de l'emploi plus petit.</li>
           <li><b>Grand Sudbury est la surprise</b> : {{ p(sud.plop_fr_pct) }} % de francophones et la meilleure note sur le coût de la vie,
             mais son revenu et son panier sont ceux de l'Ontario, ce qui la flatte un peu.</li>
-          <li><b>Toronto et Vancouver sortent derniers ou presque</b> malgré leurs salaires : loyer de {{ n(tor.loyer) }} $ et {{ n(van.loyer) }} $,
+          <li><b>Toronto et Vancouver arrivent en queue de classement</b> malgré leurs salaires : loyer de {{ n(tor.loyer) }} $ et {{ n(van.loyer) }} $,
             et moins de 2 % de francophones.</li>
         </ul>
       </div>
