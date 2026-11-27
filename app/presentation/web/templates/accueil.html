@@ -2,8 +2,8 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Axel Claude — data analyst · La Réunion et Canada francophone</title>
-  <meta name="description" content="Portfolio d'Axel Claude, data analyst certifié Le Wagon : SQL, Python, Rust, tableaux de bord et IA, sur des données publiques de La Réunion et du Canada.">
+  <title>Axel Claude — data analyst à La Réunion</title>
+  <meta name="description" content="Portfolio d'Axel Claude, data analyst certifié Le Wagon : SQL, Python, Rust, tableaux de bord et IA, sur des données publiques de La Réunion. Installation sur l'île dans les 30 jours suivant l'embauche.">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/static/theme.css?v={{ v }}">
   <style>
@@ -22,6 +22,7 @@
     .lien-contact { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-secondary); }
     .lien-contact:hover { color: var(--text-primary); text-decoration: underline; }
     .lien-contact svg { width: 16px; height: 16px; }
+    .dispo { font-size: 15px; max-width: 60em; border-left: 3px solid var(--s3); padding: 2px 0 2px 12px; }
     .tag { display: inline-block; font-size: 12px; border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; margin: 0 4px 6px 0; }
   </style>
 </head>
@@ -29,19 +30,20 @@
 <header class="bg-slate-900 text-white px-4 sm:px-6 py-4">
   <h1 class="text-xl font-bold">Axel Claude <span class="text-sky-300 font-normal">· data analyst</span></h1>
   <p class="text-sm text-slate-300">Certifié Le Wagon (RNCP niveau 6) · SQL, Python, Rust, IA</p>
-  <nav class="mt-2 text-sm"><span class="font-semibold">Accueil</span> · <a class="underline text-sky-300" href="/observatoire">Observatoire Réunion</a> · <a class="underline text-sky-300" href="/energie">Électricité Réunion</a> · <a class="underline text-sky-300" href="/btp">BTP Réunion</a> · <a class="underline text-sky-300" href="/francophonie">Francophonie Canada</a> · <a class="underline text-sky-300" href="/parc">Parc & IA</a> · <a class="underline text-sky-300" href="/projets">Projets</a> · <a class="underline text-sky-300" href="/cv">CV</a></nav>
+  <nav class="mt-2 text-sm"><span class="font-semibold">Accueil</span> · <a class="underline text-sky-300" href="/observatoire">Observatoire Réunion</a> · <a class="underline text-sky-300" href="/energie">Électricité Réunion</a> · <a class="underline text-sky-300" href="/btp">BTP Réunion</a> · <a class="underline text-sky-300" href="/parc">Parc & IA</a> · <a class="underline text-sky-300" href="/projets">Projets</a> · <a class="underline text-sky-300" href="/cv">CV</a></nav>
 </header>
 
 <main class="max-w-6xl mx-auto px-3 py-5 sm:p-6 space-y-6">
   <section class="hero card space-y-3" style="padding: 20px 22px">
     <h2>Je transforme des données publiques en décisions lisibles.</h2>
-    <p class="muted" style="font-size: 15px; max-width: 60em">Chaque page de ce site part de vraies données ouvertes (EDF, Insee, Météo-France, Statistique Canada…) :
+    <p class="muted" style="font-size: 15px; max-width: 60em">Chaque page de ce site part de vraies données ouvertes (EDF, Insee, Météo-France, commande publique…) :
       je les nettoie en SQL, je contrôle les chiffres, puis je les explique en clair, <b>avec le code visible sous chaque graphique</b>. Je cherche un poste de
-      data analyst <b>à La Réunion</b> ou <b>au Canada francophone</b> (Moncton, Ottawa), en CDI ou CDD.</p>
+      data analyst <b>à La Réunion</b>, en CDI ou CDD.</p>
+    <p class="dispo">Disponible : installation sur l'île <b>dans les 30 jours qui suivent l'embauche</b>, le temps de réserver les billets et de déménager.
+      J'ai vécu sept ans en Martinique : la vie dans un département d'outre-mer, je la connais déjà.</p>
     <div class="flex flex-wrap items-center gap-x-6 gap-y-3 pt-1">
       <div class="flex flex-wrap gap-2">
         <a class="btn" href="/cv">Voir mon CV</a>
-        <a class="btn-ghost" href="/static/cv/CV-Axel-Claude-Data-Analyst-EN.pdf">English resume (PDF)</a>
       </div>
       <div class="flex flex-wrap gap-x-5 gap-y-2">
         <a class="lien-contact" href="mailto:contact@axelclaude.fr">
@@ -55,7 +57,7 @@
   </section>
 
   <section class="space-y-3">
-    <h2 class="text-lg font-semibold">Six analyses, un chiffre chacune</h2>
+    <h2 class="text-lg font-semibold">Cinq analyses, un chiffre chacune</h2>
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <a class="card projet" href="/energie">
         <div class="tile-label">Électricité de La Réunion · open data EDF</div>
@@ -77,12 +79,6 @@
         <p class="text-sm">de pluie sur les hauts de Sainte-Rose que sur la côte Ouest ; prix de l'immobilier, emploi et accidents comparés
           commune par commune, sur 24 communes.</p>
         <span class="lien">Voir le tableau de bord →</span>
-      </a>
-      <a class="card projet" href="/francophonie">
-        <div class="tile-label">Francophonie canadienne · Statistique Canada, IRCC</div>
-        <div class="chiffre">9 villes, 11 critères</div>
-        <p class="text-sm">pour choisir où s'installer hors Québec : Ottawa en tête à poids égaux, Moncton dès que le français compte double.</p>
-        <span class="lien">Voir le comparatif →</span>
       </a>
       <a class="card projet" href="/parc">
         <div class="tile-label">Parc & IA · démo sur données simulées</div>
@@ -112,10 +108,10 @@
   <section class="grid lg:grid-cols-3 gap-4">
     <div class="card"><h3>Des chiffres vérifiés</h3>
       <p class="text-sm muted mt-1">Je recalcule ce qui est publié et je compare : je retrouve la part renouvelable d'EDF à 0,04 point près,
-        et les parts de Statistique Canada à l'arrondi près. Les écarts et les limites sont affichés, pas cachés.</p></div>
+        et je confronte la production heure par heure au bilan annuel. Les écarts et les limites sont affichés, pas cachés.</p></div>
     <div class="card"><h3>Le métier avant l'outil</h3>
-      <p class="text-sm muted mt-1">Délais du fret maritime, climatisation de l'été austral, cellules masquées d'un fichier d'immigration :
-        une analyse utile commence par comprendre le terrain.</p></div>
+      <p class="text-sm muted mt-1">Délais du fret maritime, climatisation de l'été austral, pluie et accidents sur les routes de l'île :
+        une analyse utile commence par comprendre le terrain. Sept ans en Martinique et des années de terrain me l'ont appris.</p></div>
     <div class="card"><h3>L'IA, proprement</h3>
       <p class="text-sm muted mt-1">J'utilise l'IA là où elle fait gagner du temps, sans y envoyer de données personnelles : c'est la condition
         pour qu'une entreprise ose s'en servir.</p></div>

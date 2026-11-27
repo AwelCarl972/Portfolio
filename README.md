@@ -273,5 +273,5 @@ Tests : `pytest` et `cargo test`.
 - **Rigueur** : directeur d'école de tir et instructeur bénévole depuis 5 ans. Sécurité stricte, pédagogie,
   jeunes tireurs accompagnés jusqu'aux Championnats de France 10 m.
 - **Langues** : français langue maternelle, anglais intermédiaire (B1), en progression.
-- **Disponibilité** : installation à La Réunion sous 30 jours, ou au Canada hors Québec, CDI ou CDD. Je vous présente volontiers ce projet
+- **Disponibilité** : installation à La Réunion dans les 30 jours suivant l'embauche, CDI ou CDD. Je vous présente volontiers ce projet
   en direct.
