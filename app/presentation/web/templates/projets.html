@@ -42,8 +42,8 @@
 </head>
 <body class="viz-root">
 <header class="bg-slate-900 text-white px-4 sm:px-6 py-4">
-  <h1 class="text-xl font-bold">Projets <span class="text-sky-300 font-normal">· avant ce portfolio, repris et corrigés</span></h1>
-  <p class="text-sm text-slate-300">Projet final Le Wagon (bornes de recharge) · trading algorithmique MQL5 · même chaîne : CSV → SQL DuckDB → ECharts</p>
+  <h1 class="text-xl font-bold">Projets <span class="text-sky-300 font-normal">· une application en production, et des projets d'avant repris et corrigés</span></h1>
+  <p class="text-sm text-slate-300">LoueTonEngin (Rust, Next.js, PostgreSQL) · projet final Le Wagon (bornes de recharge) · trading algorithmique MQL5</p>
   <nav class="mt-2 text-sm"><a class="underline text-sky-300" href="/">Accueil</a> · <a class="underline text-sky-300" href="/observatoire">Observatoire Réunion</a> · <a class="underline text-sky-300" href="/energie">Électricité Réunion</a> · <a class="underline text-sky-300" href="/btp">BTP Réunion</a> · <a class="underline text-sky-300" href="/parc">Parc & IA</a> · <span class="font-semibold">Projets</span> · <a class="underline text-sky-300" href="/cv">CV</a></nav>
 </header>
 
@@ -55,13 +55,54 @@
 {% else %}
   {% set B = page.bornes %}{% set k = B.kpis %}
   <nav class="tabs" role="tablist">
-    <button class="tab" role="tab" data-tab="bornes" aria-selected="true">Bornes de recharge · Le Wagon</button>
+    <button class="tab" role="tab" data-tab="lte" aria-selected="true">LoueTonEngin</button>
+    <button class="tab" role="tab" data-tab="bornes" aria-selected="false">Bornes de recharge · Le Wagon</button>
     <button class="tab" role="tab" data-tab="trading" aria-selected="false">Trading algorithmique</button>
     <button class="tab" role="tab" data-tab="code" aria-selected="false">Code</button>
   </nav>
 
+  <!-- ============ LoueTonEngin ============ -->
+  <section role="tabpanel" id="tab-lte" class="space-y-4">
+    <p class="lecture"><b>LoueTonEngin</b> est la plateforme de location de matériel BTP entre professionnels que je développe depuis
+      juillet 2026, en ligne sur <a class="underline" href="https://louetonengin.fr">louetonengin.fr</a>. Elle sert deux publics : le
+      chantier qui cherche une mini-pelle près de chez lui, et le loueur qui gère son parc. Je l'ai écrite avec un assistant IA de code,
+      en gardant la main sur l'architecture, les règles métier et la relecture de chaque changement.</p>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="tile"><div class="tile-label">Commits</div><div class="tile-value">631</div>
+        <div class="tile-sub muted">et 171 demandes de fusion intégrées</div></div>
+      <div class="tile"><div class="tile-label">Migrations PostgreSQL</div><div class="tile-value">120</div>
+        <div class="tile-sub muted">un modèle de données qui a grandi avec le métier</div></div>
+      <div class="tile"><div class="tile-label">Tests automatisés</div><div class="tile-value">918</div>
+        <div class="tile-sub muted">côté Rust, lancés à chaque changement</div></div>
+      <div class="tile"><div class="tile-label">Langues de l'interface</div><div class="tile-value">3</div>
+        <div class="tile-sub muted">français, anglais, espagnol</div></div>
+    </div>
+    <div class="grid lg:grid-cols-3 gap-4">
+      <div class="card"><h3>Ce que fait la plateforme</h3>
+        <ul class="text-sm list-disc ml-5 space-y-1 mt-2 muted">
+          <li>recherche d'engins sur une carte, réservation et devis entre professionnels ;</li>
+          <li>pour le loueur : parc, planning, factures au format Factur-X et rentabilité de chaque machine ;</li>
+          <li>rappels d'entretien et de vérifications périodiques (VGP), par e-mail et dans l'application ;</li>
+          <li>espace client par simple lien pour les clients qui ne passent pas par la place de marché ;</li>
+          <li>une application Android pour le terrain.</li>
+        </ul></div>
+      <div class="card"><h3>Comment c'est construit</h3>
+        <ul class="text-sm list-disc ml-5 space-y-1 mt-2 muted">
+          <li>back-end en Rust (Axum), environ 76 000 lignes, en quatre couches : domaine, cas d'usage, infrastructure, API ;</li>
+          <li>requêtes SQL vérifiées à la compilation (SQLx), PostgreSQL avec PostGIS pour la géographie ;</li>
+          <li>front en Next.js 16 et TypeScript, environ 54 000 lignes ;</li>
+          <li>mise en ligne en conteneurs Docker derrière Caddy, sauvegardes scriptées.</li>
+        </ul></div>
+      <div class="card"><h3>Ce que la donnée y fait</h3>
+        <p class="text-sm muted mt-2">La rentabilité par machine, les échéances d'entretien et le taux d'occupation du parc sont des
+          indicateurs calculés en SQL sur les réservations, les factures et les interventions. C'est le même travail que sur les pages de
+          ce site, mais sur des données qu'une entreprise produit elle-même chaque jour.</p>
+        <p class="text-sm muted mt-2">Le code est privé, puisque c'est un produit commercial. Je le montre volontiers en entretien.</p></div>
+    </div>
+  </section>
+
   <!-- ============ Bornes ============ -->
-  <section role="tabpanel" id="tab-bornes" class="space-y-4">
+  <section role="tabpanel" id="tab-bornes" class="space-y-4" hidden>
     <p class="lecture">Projet final de ma formation Le Wagon (2025) : la France a mis en service <b>{{ "{:,}".format(k.points_2023).replace(",", " ") }} points de charge en 2023</b>,
       soit {{ k.part_2023|int }} % de tout le parc ouvert depuis 2010. La version d'origine (Google Sheets, Python pandas et NumPy, Looker Studio, carte Leaflet)
       est reprise ici avec ses données, nettoyées en SQL, chaque ligne écartée étant comptée.</p>

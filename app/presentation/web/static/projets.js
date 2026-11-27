@@ -224,7 +224,7 @@
   });
 
   /* ---------------- Onglets ---------------- */
-  const TABS = ["bornes", "trading", "code"];
+  const TABS = ["lte", "bornes", "trading", "code"];
   function montrer(nom, push = true) {
     if (!TABS.includes(nom)) nom = TABS[0];
     document.querySelectorAll('[role="tab"]').forEach(b => b.setAttribute("aria-selected", b.dataset.tab === nom));
