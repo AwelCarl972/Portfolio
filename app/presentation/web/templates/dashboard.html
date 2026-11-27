@@ -10,6 +10,36 @@
   <link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css">
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
   <link rel="stylesheet" href="/static/theme.css?v={{ v }}">
+  <style>
+    /* Carte des prix au m² : filtres en lignes, carte à gauche, chiffres à droite (dessous sur téléphone) */
+    .immo-filtres { display: grid; gap: 8px; margin: 10px 0 14px; }
+    .immo-filtres > div { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+    .immo-filtres > div > span { width: 170px; flex-shrink: 0; font-size: 13px; color: var(--text-secondary); }
+    .immo-groupe { display: flex; flex-wrap: wrap; gap: 6px; }
+    .immo-groupe .chip:disabled { opacity: .35; cursor: not-allowed; }
+    .immo-grille { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
+    @media (max-width: 900px) { .immo-grille { grid-template-columns: minmax(0, 1fr); } .immo-filtres > div > span { width: 100%; } }
+    #immo-svg { width: 100%; height: auto; display: block; background: var(--code-bg); border-radius: 8px; }
+    .immo-fond path { fill: var(--surface-1); stroke: none; }
+    .immo-zone, .immo-peu, .immo-vide { stroke: var(--surface-1); stroke-width: 1; cursor: pointer; }
+    .immo-zone:hover { stroke: var(--text-primary); stroke-width: 1.5; }
+    .immo-peu { fill: var(--grid); }
+    .immo-vide { fill: var(--surface-1); cursor: default; }
+    .immo-sel { stroke: var(--text-primary) !important; stroke-width: 2.5 !important; }
+    .immo-traits path { fill: none; stroke: var(--axis); stroke-width: .8; pointer-events: none; }
+    .immo-legende { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--text-secondary); margin-top: 8px; font-variant-numeric: tabular-nums; }
+    .immo-legende i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+    .immo-i-peu { background: var(--grid); }
+    .immo-cote { display: grid; gap: 14px; font-size: 13.5px; }
+    .immo-cote h4 { font-weight: 600; }
+    .immo-chiffre { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    #immo-zone { border-top: 1px solid var(--grid); padding-top: 12px; }
+    .immo-table { width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+    .immo-table th { text-align: left; color: var(--text-secondary); font-weight: 500; border-bottom: 1px solid var(--grid); padding: 3px 4px; }
+    .immo-table td { border-bottom: 1px solid var(--grid); padding: 3px 4px; cursor: pointer; }
+    .immo-table .n { text-align: right; }
+    .immo-table tr:hover td, .immo-table tr.immo-sel td { background: var(--code-bg); }
+  </style>
 </head>
 <body class="viz-root">
 {% macro card(id, title, sub, sql, scope=None, height="chart") -%}
@@ -54,6 +84,39 @@
 
   <!-- ============ Immobilier ============ -->
   <section role="tabpanel" id="tab-immobilier" class="grid lg:grid-cols-2 gap-4">
+    {% macro puces(cle, choix, sel="tous") -%}
+      <div class="immo-groupe" data-filtre="{{ cle }}">{% for v, lib in choix %}<button type="button" class="chip" data-v="{{ v }}"
+        aria-pressed="{{ 'true' if v == sel else 'false' }}">{{ lib }}</button>{% endfor %}</div>
+    {%- endmacro %}
+    <div class="card lg:col-span-2" id="immo" data-src="/static/immo/ventes.json?v={{ v }}">
+      <h3>Combien coûte le m² pour ce que je cherche ?</h3>
+      <p class="sub">Choisissez le type de bien et ce qu'il doit avoir : la carte montre le prix médian au m² des ventes qui
+        correspondent, commune par commune ou par secteur d'environ 2 km · ventes 2021-2025 (DVF géolocalisée)</p>
+      <div class="immo-filtres">
+        <div><span>Bien</span>{{ puces("bien", [("tous", "Tous"), ("maison", "Maison"), ("appartement", "Appartement")]) }}</div>
+        <div><span>Pièces</span>{{ puces("pieces", [(1, "T1"), (2, "T2"), (3, "T3"), (4, "T4"), (5, "T5 et +")], None) }}</div>
+        <div><span>Garage, parking ou cave</span>{{ puces("dep", [("tous", "Indifférent"), ("avec", "Avec"), ("sans", "Sans")]) }}</div>
+        <div><span>Terrain (maisons)</span>{{ puces("terrain", [("tous", "Indifférent"), ("0", "Moins de 300 m²"), ("1", "300 à 600 m²"), ("2", "Plus de 600 m²")]) }}</div>
+        <div><span>Neuf ou ancien</span>{{ puces("neuf", [("tous", "Les deux"), ("ancien", "Ancien"), ("neuf", "Neuf (sur plan)")]) }}</div>
+        <div><span>Période</span>{{ puces("periode", [("tout", "2021-2025"), ("recent", "2024-2025")], "tout") }}</div>
+        <div><span>Échelle</span>{{ puces("echelle", [("commune", "Communes"), ("hex", "Secteurs de 2 km")], "commune") }}</div>
+      </div>
+      <div class="immo-grille">
+        <div>
+          <svg id="immo-svg" role="img" aria-label="Carte du prix médian au m² selon les critères choisis"></svg>
+          <div id="immo-legende" class="immo-legende"></div>
+        </div>
+        <div class="immo-cote">
+          <div id="immo-resume"><p class="muted">Chargement des ventes…</p></div>
+          <div id="immo-zone"></div>
+          <table class="immo-table" id="immo-classement"><thead><tr><th>Commune</th><th class="n">€/m²</th><th class="n">Ventes</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+      <p class="sub" style="margin-top:10px">Une vente compte si elle porte sur un seul logement ; son prix inclut le garage ou le terrain
+        vendus avec. « Garage, parking ou cave » : DVF ne distingue pas ces dépendances. Le terrain est la surface cadastrale vendue avec
+        la maison. Les piscines ne figurent pas dans DVF. Médiane affichée à partir de 10 ventes par commune et 5 par secteur.
+        Mise à jour : <span id="immo-maj"></span>.</p>
+    </div>
     {% call card("prix_trend", "Prix médian au m² par type de bien", "DVF 2014-2025 · médiane annuelle en €/m² ; Q1-Q3 et volume au survol", "prix_trend") %}{% endcall %}
     {% call card("prix_box", "Dispersion des prix au m² par commune (2023-2025)", "Boîte = Q1-Q3, trait = médiane, moustaches = P10-P90 · communes ≥ 30 ventes", "prix_box") %}{% endcall %}
     <div class="lg:col-span-2">
@@ -269,5 +332,6 @@
 {% endif %}
 </main>
 <script src="/static/dashboard.js?v={{ v }}"></script>
+<script src="/static/immo.js?v={{ v }}"></script>
 </body>
 </html>
