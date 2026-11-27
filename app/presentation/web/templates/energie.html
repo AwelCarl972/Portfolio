@@ -40,6 +40,7 @@
     <button class="tab" role="tab" data-tab="bascule" aria-selected="true">La bascule 2018-2024</button>
     <button class="tab" role="tab" data-tab="rythmes" aria-selected="false">Une journée, deux saisons</button>
     <button class="tab" role="tab" data-tab="conso" aria-selected="false">Qui consomme</button>
+    <button class="tab" role="tab" data-tab="carte" aria-selected="false">Centrales et réseau</button>
     <button class="tab" role="tab" data-tab="powerbi" aria-selected="false">Version Power BI</button>
     <button class="tab" role="tab" data-tab="donnees" aria-selected="false">Données & SQL</button>
   </nav>
@@ -151,6 +152,20 @@
         <li>Le petit regain de « solaire » vers 19 h vient probablement de centrales solaires équipées de batteries, qui stockent à midi et
           livrent à la pointe du soir. C'est une hypothèse : les données ne le disent pas.</li>
       </ul>
+    </div>
+  </section>
+
+  <!-- ============ Carte ============ -->
+  <section role="tabpanel" id="tab-carte" class="space-y-4" hidden>
+    <p class="lecture">Toute l'électricité de l'île circule sur un réseau de lignes à <b>63 kV</b>, la tension la plus élevée de La Réunion,
+      qui fait le tour de la côte et ne traverse l'intérieur qu'une fois, par la Plaine des Cafres. Les grosses centrales thermiques sont
+      au bord de la mer, là où arrive leur combustible : Port-Est à côté du port, Le Gol et Bois-Rouge à côté des sucreries, qui leur
+      fournissent la bagasse. Les deux plus grosses centrales hydrauliques, la Rivière de l'Est et Takamaka, sont à l'est, sur les pentes au vent, où il pleut le plus.</p>
+    <div class="card">
+      <h3>Les centrales par filière et le réseau 63 kV</h3>
+      <p class="sub">La taille d'un point suit la puissance installée · les cases de la légende masquent une filière ou le réseau ·
+        seuls les parcs solaires au sol y figurent, pas les toitures</p>
+      <div class="mt-3">{% include "partials/carte_reseau.html" %}</div>
     </div>
   </section>
 
