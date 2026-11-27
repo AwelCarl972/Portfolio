@@ -6,7 +6,7 @@ from typing import Annotated
 import duckdb
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, Response
 from markupsafe import Markup, escape
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -48,6 +48,41 @@ templates.env.globals.update(risk_level=risk_level, status_label=status_label,
 def cv(request: Request):
     """Version publique du CV : sans téléphone, avec l'adresse du domaine (le site est lu par des robots)."""
     return templates.TemplateResponse(request, "cv.html", {})
+
+
+# --- Robots : ce que les moteurs voient --------------------------------------------------------------------------
+SITE = os.environ.get("SITE_URL", "https://axelclaude.fr").rstrip("/")
+# Pages présentées aux recruteurs de La Réunion, dans l'ordre du menu
+PAGES_PUBLIQUES = ["/", "/observatoire", "/energie", "/btp", "/parc", "/projets", "/cv"]
+# Accessibles par lien direct, mais hors des moteurs : la version « Canada » du portfolio
+HORS_MOTEURS = {"/francophonie", "/static/cv/CV-Axel-Claude-Data-Analyst-EN.pdf"}
+
+
+@app.middleware("http")
+async def consigne_robots(request: Request, call_next):
+    reponse = await call_next(request)
+    if request.url.path in HORS_MOTEURS:
+        reponse.headers["X-Robots-Tag"] = "noindex"
+    return reponse
+
+
+@app.get("/robots.txt", response_class=PlainTextResponse)
+def robots():
+    # Les fragments HTMX, les données brutes et l'appel à l'IA ne sont pas des pages à référencer
+    return ("User-agent: *\n"
+            "Disallow: /analyze\n"
+            "Disallow: /observatoire/panel\n"
+            "Disallow: /observatoire/pair\n"
+            "Disallow: /projets/donnees/\n"
+            f"\nSitemap: {SITE}/sitemap.xml\n")
+
+
+@app.get("/sitemap.xml")
+def sitemap():
+    urls = "".join(f"<url><loc>{SITE}{p}</loc></url>" for p in PAGES_PUBLIQUES)
+    return Response('<?xml version="1.0" encoding="UTF-8"?>'
+                    f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>',
+                    media_type="application/xml")
 
 
 @app.get("/sante")
