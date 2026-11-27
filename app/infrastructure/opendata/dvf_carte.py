@@ -7,6 +7,8 @@ Le résultat est un JSON en colonnes, lu par static/immo.js.
 
     python -m app.infrastructure.opendata.dvf_carte
 """
+import csv
+import io
 import json
 import math
 import urllib.request
@@ -22,6 +24,16 @@ ANNEES = range(2021, 2026)
 URL = "https://files.data.gouv.fr/geo-dvf/latest/csv/{a}/departements/974.csv.gz"
 COMMUNES = "https://geo.api.gouv.fr/communes?codeDepartement=974&format=geojson&geometry=contour&fields=nom"
 _AGENT = {"User-Agent": "opendata-fetch/1.0"}
+
+# Carte des loyers 2025 (ANIL, ministère du Logement) : loyer d'annonce prédit en €/m², charges comprises,
+# pour un bien de référence non meublé mis en location au 3e trimestre 2025
+LOYERS = "https://static.data.gouv.fr/resources/carte-des-loyers-indicateurs-de-loyers-dannonce-par-commune-en-2025/"
+LOYERS_FICHIERS = {  # segment : (fichier, surface du bien de référence en m²)
+    "app": ("20251211-145010/pred-app-mef-dhup.csv", 52),
+    "app12": ("20251211-144934/pred-app12-mef-dhup.csv", 37),
+    "app3": ("20251211-144951/pred-app3-mef-dhup.csv", 72),
+    "mai": ("20251211-145039/pred-mai-mef-dhup.csv", 92),
+}
 
 # Même projection que la carte du réseau électrique : équirectangulaire corrigée de la latitude
 LON0, LON1, LAT0, LAT1 = 55.20, 55.85, -20.855, -21.405
@@ -87,6 +99,22 @@ def telecharger() -> None:
         (BRUT / f"{a}.csv.gz").write_bytes(_get(URL.format(a=a)))
 
 
+def loyers(codes: list[str]) -> dict:
+    """Pour chaque segment, une ligne par commune (ordre de `codes`) : [loyer, borne basse, borne haute,
+    annonces dans la commune, 1 si estimé sur un groupe de communes voisines]."""
+    out = {}
+    for seg, (fichier, surface) in LOYERS_FICHIERS.items():
+        texte = _get(LOYERS + fichier).decode("latin-1")
+        par_code = {}
+        for r in csv.DictReader(io.StringIO(texte), delimiter=";"):
+            if r["DEP"] == "974":
+                f = lambda k: round(float(r[k].replace(",", ".")), 2)
+                par_code[r["INSEE_C"]] = [f("loypredm2"), f("lwr.IPm2"), f("upr.IPm2"), int(r["nbobs_com"]),
+                                          int(r["TYPPRED"] != "commune")]
+        out[seg] = {"surface": surface, "communes": [par_code.get(c) for c in codes]}
+    return out
+
+
 def _xy(lat: float, lon: float) -> tuple[float, float]:
     return (lon - LON0) * KX, (LAT0 - lat) * KY
 
@@ -149,6 +177,7 @@ def construire() -> dict:
         "communes": [{"nom": nom, "d": chemin(g)} for _, nom, g in communes],
         "hex": [[round(v, 1) for v in _centre_hex(q, r)] for (q, r) in sorted(hexagones, key=hexagones.get)],
         "ventes": col,
+        "loyers": loyers([code for code, _, _ in communes]),
     }
 
 

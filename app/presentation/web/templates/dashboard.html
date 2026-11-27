@@ -90,9 +90,11 @@
     {%- endmacro %}
     <div class="card lg:col-span-2" id="immo" data-src="/static/immo/ventes.json?v={{ v }}">
       <h3>Combien coûte le m² pour ce que je cherche ?</h3>
-      <p class="sub">Choisissez le type de bien et ce qu'il doit avoir : la carte montre le prix médian au m² des ventes qui
-        correspondent, commune par commune ou par secteur d'environ 2 km · ventes 2021-2025 (DVF géolocalisée)</p>
+      <p class="sub">Choisissez d'acheter ou de louer, le type de bien et ce qu'il doit avoir : la carte montre le prix au m² qui
+        correspond, commune par commune ou, à l'achat, par secteur d'environ 2 km · achat : ventes 2021-2025 (DVF géolocalisée) ·
+        location : carte des loyers 2025</p>
       <div class="immo-filtres">
+        <div><span>Projet</span>{{ puces("mode", [("achat", "Acheter"), ("location", "Louer")], "achat") }}</div>
         <div><span>Bien</span>{{ puces("bien", [("tous", "Tous"), ("maison", "Maison"), ("appartement", "Appartement")]) }}</div>
         <div><span>Pièces</span>{{ puces("pieces", [(1, "T1"), (2, "T2"), (3, "T3"), (4, "T4"), (5, "T5 et +")], None) }}</div>
         <div><span>Garage, parking ou cave</span>{{ puces("dep", [("tous", "Indifférent"), ("avec", "Avec"), ("sans", "Sans")]) }}</div>
@@ -100,6 +102,8 @@
         <div><span>Neuf ou ancien</span>{{ puces("neuf", [("tous", "Les deux"), ("ancien", "Ancien"), ("neuf", "Neuf (sur plan)")]) }}</div>
         <div><span>Période</span>{{ puces("periode", [("tout", "2021-2025"), ("recent", "2024-2025")], "tout") }}</div>
         <div><span>Échelle</span>{{ puces("echelle", [("commune", "Communes"), ("hex", "Secteurs de 2 km")], "commune") }}</div>
+        <p id="immo-note-location" class="sub" hidden>En location, la source donne un loyer par commune pour les appartements
+          (tous, T1-T2 ou T3 et plus) et pour les maisons : les autres critères ne s'appliquent pas.</p>
       </div>
       <div class="immo-grille">
         <div>
@@ -115,6 +119,9 @@
       <p class="sub" style="margin-top:10px">Une vente compte si elle porte sur un seul logement ; son prix inclut le garage ou le terrain
         vendus avec. « Garage, parking ou cave » : DVF ne distingue pas ces dépendances. Le terrain est la surface cadastrale vendue avec
         la maison. Les piscines ne figurent pas dans DVF. Médiane affichée à partir de 10 ventes par commune et 5 par secteur.
+        Location : loyer d'annonce prédit pour un bien de référence non meublé, charges comprises, mis en location au 3e trimestre
+        2025 (appartement 52 m², T1-T2 37 m², T3 et plus 72 m², maison 92 m²) ; ce n'est pas une médiane, et l'estimation est fragile
+        sous 30 annonces dans la commune. Estimations ANIL, à partir des données du Groupe SeLoger et de leboncoin.
         Mise à jour : <span id="immo-maj"></span>.</p>
     </div>
     {% call card("prix_trend", "Prix médian au m² par type de bien", "DVF 2014-2025 · médiane annuelle en €/m² ; Q1-Q3 et volume au survol", "prix_trend") %}{% endcall %}
