@@ -221,7 +221,7 @@ real LLM. Tests: `pytest` and `cargo test`.
   Today: advanced SQL, Rust, Python, and daily use of AI to move faster.
 - **Method**: a "smart lazy" person. I don't redo by hand what can be automated, I avoid over-engineering, and I look
   for the shortest path to a reliable and maintainable result.
-- **Field experience**: construction site manager and mason (estimating, margins, supply), real-estate diagnostician
+- **Field experience**: construction works manager ("conducteur de travaux") and mason (estimating, margins, supply), real-estate diagnostician
   (audits, compliance, reports), fleet management and motorhome assessment (maintenance, parts, claims). I understand
   the data because I have done the jobs that produce it.
 - **Islands and remote markets**: 7 years in Martinique; I know freight, supply lead times and small-market economics.
