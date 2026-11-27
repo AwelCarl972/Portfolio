@@ -43,7 +43,7 @@
 <body class="viz-root">
 <header class="bg-slate-900 text-white px-4 sm:px-6 py-4">
   <h1 class="text-xl font-bold">Projets <span class="text-sky-300 font-normal">· une application en production, et des projets d'avant repris et corrigés</span></h1>
-  <p class="text-sm text-slate-300">LoueTonEngin (Rust, Next.js, PostgreSQL) · projet final Le Wagon (bornes de recharge) · trading algorithmique MQL5</p>
+  <p class="text-sm text-slate-300">LoueTonEngin (Rust, Next.js, PostgreSQL) · stock et caisse d'un club sportif (PHP, SQLite) · projet final Le Wagon (bornes de recharge) · trading algorithmique MQL5</p>
   <nav class="mt-2 text-sm"><a class="underline text-sky-300" href="/">Accueil</a> · <a class="underline text-sky-300" href="/observatoire">Observatoire Réunion</a> · <a class="underline text-sky-300" href="/energie">Électricité Réunion</a> · <a class="underline text-sky-300" href="/btp">BTP Réunion</a> · <a class="underline text-sky-300" href="/parc">Parc & IA</a> · <span class="font-semibold">Projets</span> · <a class="underline text-sky-300" href="/cv">CV</a></nav>
 </header>
 
@@ -56,6 +56,7 @@
   {% set B = page.bornes %}{% set k = B.kpis %}
   <nav class="tabs" role="tablist">
     <button class="tab" role="tab" data-tab="lte" aria-selected="true">LoueTonEngin</button>
+    <button class="tab" role="tab" data-tab="club" aria-selected="false">Stock et caisse d'un club</button>
     <button class="tab" role="tab" data-tab="bornes" aria-selected="false">Bornes de recharge · Le Wagon</button>
     <button class="tab" role="tab" data-tab="trading" aria-selected="false">Trading algorithmique</button>
     <button class="tab" role="tab" data-tab="code" aria-selected="false">Code</button>
@@ -99,6 +100,49 @@
           ce site, mais sur des données qu'une entreprise produit elle-même chaque jour.</p>
         <p class="text-sm muted mt-2">Le code est privé, puisque c'est un produit commercial. Je le montre volontiers en entretien.</p></div>
     </div>
+  </section>
+
+  <!-- ============ Stock et caisse d'un club ============ -->
+  <section role="tabpanel" id="tab-club" class="space-y-4" hidden>
+    <p class="lecture">Pour le club de tir sportif où je suis bénévole, j'ai d'abord tenu le stock dans un classeur, en 2024, puis je l'ai
+      remplacé par une application (2026). Elle répond à deux questions : <b>quoi commander, et quand</b>, à partir des comptages du placard,
+      et <b>ce que le stand vend vraiment</b>, à partir des archives de la caisse enregistreuse. Les chiffres du club ne sont pas publiés ici :
+      cette page montre la méthode.</p>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="tile"><div class="tile-label">Références suivies en stock</div><div class="tile-value">26</div>
+        <div class="tile-sub muted">consommables et cibles, deux ans de comptages repris du classeur</div></div>
+      <div class="tile"><div class="tile-label">Marge de commande</div><div class="tile-value">60 jours</div>
+        <div class="tile-sub muted">un article passe « à commander » quand il s'épuisera avant</div></div>
+      <div class="tile"><div class="tile-label">Lignes de vente lues pour 2024</div><div class="tile-value">16 000</div>
+        <div class="tile-sub muted">depuis les archives fiscales de la caisse</div></div>
+      <div class="tile"><div class="tile-label">Donnée personnelle</div><div class="tile-value">0</div>
+        <div class="tile-sub muted">la caisse n'identifie aucun client</div></div>
+    </div>
+    <div class="grid lg:grid-cols-3 gap-4">
+      <div class="card"><h3>Prévoir la rupture, pas la constater</h3>
+        <p class="text-sm muted mt-2">Le classeur extrapolait les niveaux et prenait chaque livraison pour une hausse de consommation : il
+          annonçait un stock négatif de 3 874 cartouches pour octobre 2026. L'application ne connaît que deux mouvements, un <b>comptage</b>
+          (ce qui reste) et une <b>entrée</b> (ce qui est arrivé) ; ce qui est parti se déduit de l'écart entre deux comptages, livraisons
+          retirées. La date d'épuisement qui en sort est juste, et l'écran s'ouvre sur ce qu'il faut commander, pas sur un inventaire.</p>
+        <p class="text-sm muted mt-2">C'est le même raisonnement que le délai de fret dans la <a class="underline" href="/parc">démo Parc &amp; IA</a> :
+          un tableau qui ne signale que les ruptures annonce toujours la nouvelle trop tard.</p></div>
+      <div class="card"><h3>Lire une caisse enregistreuse</h3>
+        <p class="text-sm muted mt-2">La base de la caisse est chiffrée. Les archives fiscales, elles, sont imposées par la loi anti-fraude :
+          signées, inaltérables et lisibles, et elles survivront à un changement de logiciel. On dépose le fichier tel quel ; chaque ligne
+          garde l'identifiant donné par la caisse, qui sert de clé, donc déposer deux fois la même période ne double rien.</p>
+        <p class="text-sm muted mt-2">Les forfaits de location (une arme prêtée, une cible et 25 cartouches) sont dépliés en ce qu'ils
+          consomment vraiment : l'inventaire ne les voyait pas, alors qu'ils vident l'étagère.</p></div>
+      <div class="card"><h3>Des questions de comptoir</h3>
+        <ul class="text-sm list-disc ml-5 space-y-1 mt-2 muted">
+          <li>ventes mois par mois, passages et panier moyen, une année sur l'autre ;</li>
+          <li>saisonnalité, affichée seulement à partir de deux saisons, quand elle cesse de recopier la série ;</li>
+          <li>ce qui s'achète ensemble : une location ne s'accompagne d'une cible payante que dans 6 % des tickets, ce qui confirme que le forfait inclut la sienne ;</li>
+          <li>tarifs pratiqués avec leur date de changement ;</li>
+          <li>un article que les règles ne savent pas classer s'affiche en rouge au lieu d'être deviné.</li>
+        </ul></div>
+    </div>
+    <p class="text-sm muted">Construit en PHP natif et SQLite, sans aucune dépendance externe, avec des courbes en SVG tracées par le serveur
+      et un espace qui s'installe sur l'écran d'un téléphone. Le code est privé ; je le montre volontiers en entretien.</p>
   </section>
 
   <!-- ============ Bornes ============ -->
