@@ -1,14 +1,13 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8"><link rel="icon" type="image/svg+xml" href="/static/favicon.svg"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Francophonie canadienne — recensements, immigration, choix d'une ville</title>
   <meta name="description" content="Le français au Canada hors Québec : 70 ans de recensements, l'immigration francophone depuis 2015 et un comparatif de 9 villes (coût de la vie, emploi, cadre de vie), analysés en SQL.">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
   <link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github.min.css">
   <link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css">
-  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
   <link rel="stylesheet" href="/static/theme.css?v={{ v }}">
   <style>
     .lecture { border-left: 3px solid var(--s1); padding: 4px 0 4px 12px; font-size: 14px; }
@@ -18,6 +17,7 @@
     table.simple td.n, table.simple th.n { text-align: right; }
     .sql-box, .tbl-box { margin-top: 8px; }
   </style>
+  <link rel="stylesheet" href="/static/tailwind.css?v={{ v }}"><!-- après les styles de la page, comme le faisait le script Tailwind -->
 </head>
 <body class="viz-root">
 <header class="bg-slate-900 text-white px-4 sm:px-6 py-4">
@@ -311,6 +311,6 @@
   <script type="application/json" id="page-data">{{ page|tojson }}</script>
 {% endif %}
 </main>
-<script src="/static/francophonie.js?v={{ v }}"></script>
+<script defer src="/static/francophonie.js?v={{ v }}"></script>
 </body>
 </html>

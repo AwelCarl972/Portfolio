@@ -7,3 +7,4 @@ candidature/
 **/__pycache__/
 rust/datakit/target/
 tests/
+node_modules

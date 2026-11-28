@@ -256,6 +256,9 @@ Ouvrir http://127.0.0.1:8000 (accueil), puis `/observatoire`, `/energie`, `/btp`
 un simulateur d'IA hors-ligne répond ; avec `ANTHROPIC_API_KEY` (et `pip install anthropic`), c'est un vrai LLM.
 Tests : `pytest` et `cargo test`.
 
+Styles : après avoir ajouté des classes Tailwind dans un gabarit ou un script, régénérer `static/tailwind.css`
+avec `npm install` (une fois) puis `npm run css`. La feuille est versionnée : le serveur n'a pas besoin de Node.
+
 ---
 
 ## À propos de moi

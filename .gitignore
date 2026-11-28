@@ -6,3 +6,4 @@ __pycache__/
 rust/datakit/target/
 candidature/
 .claude/
+node_modules/

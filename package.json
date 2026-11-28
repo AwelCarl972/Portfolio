@@ -1,0 +1,11 @@
+{
+  "name": "portfolio-data-css",
+  "private": true,
+  "description": "Génère la feuille Tailwind du site (remplace le script cdn.tailwindcss.com, déconseillé en production)",
+  "scripts": {
+    "css": "tailwindcss -c tailwind.config.js -i app/presentation/web/styles/tailwind.src.css -o app/presentation/web/static/tailwind.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.19"
+  }
+}

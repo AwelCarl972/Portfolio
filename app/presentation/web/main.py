@@ -85,6 +85,13 @@ def sitemap():
                     media_type="application/xml")
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    # Les navigateurs demandent /favicon.ico d'office ; on sert la même icône que le <link rel="icon"> des pages
+    return Response((_STATIC / "favicon.svg").read_bytes(), media_type="image/svg+xml",
+                    headers={"Cache-Control": "public, max-age=604800"})
+
+
 @app.get("/sante")
 def sante():
     """Sonde du conteneur : ne charge rien, répond dès que le serveur écoute."""
@@ -106,6 +113,19 @@ def _surligner(texte: str) -> Markup:
 
 
 templates.env.filters["alias"] = _surligner
+
+
+# Les données open data sont chargées une fois au démarrage et ne bougent plus : inutile de refaire les requêtes
+# DuckDB à chaque visite (0,3 à 0,7 s par page). La clé inclut l'objet métier, pour qu'un test qui en injecte
+# un autre ne reçoive pas les résultats d'un précédent.
+_MEMO: dict = {}
+
+
+def _une_fois(uc, *cle, calcul):
+    k = (id(uc), *cle)
+    if k not in _MEMO:
+        _MEMO[k] = calcul()
+    return _MEMO[k]
 
 
 @app.get("/parc", response_class=HTMLResponse)
@@ -152,15 +172,16 @@ def observatoire(request: Request, uc: Annotated[TerritoryDashboard, Depends(get
         return templates.TemplateResponse(request, "dashboard.html", {"missing": True})
     return templates.TemplateResponse(request, "dashboard.html", {
         "missing": False, "regions": REGIONS,
-        "panel": jsonable_encoder(uc.panel("ALL")), "cross": jsonable_encoder(uc.cross()),
-        "lineage": uc.lineage()})
+        "panel": _une_fois(uc, "panel", "ALL", calcul=lambda: jsonable_encoder(uc.panel("ALL"))),
+        "cross": _une_fois(uc, "cross", calcul=lambda: jsonable_encoder(uc.cross())),
+        "lineage": _une_fois(uc, "lineage", calcul=uc.lineage)})
 
 
 @app.get("/observatoire/panel", response_class=HTMLResponse)
 def observatoire_panel(request: Request, uc: Annotated[TerritoryDashboard, Depends(get_territory)],
                        region: str = "ALL"):
     return templates.TemplateResponse(request, "partials/territory_panel.html",
-                                      {"panel": jsonable_encoder(uc.panel(region))})
+                                      {"panel": _une_fois(uc, "panel", region if region in REGIONS else "ALL", calcul=lambda: jsonable_encoder(uc.panel(region)))})
 
 
 @app.get("/observatoire/pair")
@@ -178,7 +199,7 @@ def projets(request: Request, uc: Annotated[ProjetsShowcase, Depends(get_projets
     if not uc.available():
         return templates.TemplateResponse(request, "projets.html", {"missing": True})
     extraits = {f.name: f.read_text(encoding="utf-8") for f in _EXTRAITS.iterdir() if f.is_file()}
-    return templates.TemplateResponse(request, "projets.html", {"missing": False, "page": jsonable_encoder(uc.page()),
+    return templates.TemplateResponse(request, "projets.html", {"missing": False, "page": _une_fois(uc, "page", calcul=lambda: jsonable_encoder(uc.page())),
                                                                 "extraits": extraits})
 
 
@@ -196,18 +217,21 @@ def projets_donnees(uc: Annotated[ProjetsShowcase, Depends(get_projets)], name: 
 def energie(request: Request, uc: Annotated[EnergieShowcase, Depends(get_energie)]):
     if not uc.available():
         return templates.TemplateResponse(request, "energie.html", {"missing": True})
-    return templates.TemplateResponse(request, "energie.html", {"missing": False, "page": jsonable_encoder(uc.page())})
+    return templates.TemplateResponse(request, "energie.html", {"missing": False,
+                                                            "page": _une_fois(uc, "page", calcul=lambda: jsonable_encoder(uc.page()))})
 
 
 @app.get("/btp", response_class=HTMLResponse)
 def btp(request: Request, uc: Annotated[BtpShowcase, Depends(get_btp)]):
     if not uc.available():
         return templates.TemplateResponse(request, "btp.html", {"missing": True})
-    return templates.TemplateResponse(request, "btp.html", {"missing": False, "page": jsonable_encoder(uc.page())})
+    return templates.TemplateResponse(request, "btp.html", {"missing": False,
+                                                            "page": _une_fois(uc, "page", calcul=lambda: jsonable_encoder(uc.page()))})
 
 
 @app.get("/francophonie", response_class=HTMLResponse)
 def francophonie(request: Request, uc: Annotated[FrancophonieShowcase, Depends(get_francophonie)]):
     if not uc.available():
         return templates.TemplateResponse(request, "francophonie.html", {"missing": True})
-    return templates.TemplateResponse(request, "francophonie.html", {"missing": False, "page": jsonable_encoder(uc.page())})
+    return templates.TemplateResponse(request, "francophonie.html", {"missing": False,
+                                                            "page": _une_fois(uc, "page", calcul=lambda: jsonable_encoder(uc.page()))})

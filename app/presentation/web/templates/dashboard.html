@@ -1,14 +1,13 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8"><link rel="icon" type="image/svg+xml" href="/static/favicon.svg"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Observatoire Réunion — open data</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+  <script defer src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
   <link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github.min.css">
   <link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css">
-  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
   <link rel="stylesheet" href="/static/theme.css?v={{ v }}">
   <style>
     /* Carte des prix au m² : filtres en lignes, carte à gauche, chiffres à droite (dessous sur téléphone) */
@@ -40,6 +39,7 @@
     .immo-table .n { text-align: right; }
     .immo-table tr:hover td, .immo-table tr.immo-sel td { background: var(--code-bg); }
   </style>
+  <link rel="stylesheet" href="/static/tailwind.css?v={{ v }}"><!-- après les styles de la page, comme le faisait le script Tailwind -->
 </head>
 <body class="viz-root">
 {% macro card(id, title, sub, sql, scope=None, height="chart") -%}
@@ -339,7 +339,7 @@
   <script type="application/json" id="cross-data">{{ cross|tojson }}</script>
 {% endif %}
 </main>
-<script src="/static/dashboard.js?v={{ v }}"></script>
-<script src="/static/immo.js?v={{ v }}"></script>
+<script defer src="/static/dashboard.js?v={{ v }}"></script>
+<script defer src="/static/immo.js?v={{ v }}"></script>
 </body>
 </html>

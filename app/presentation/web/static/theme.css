@@ -74,10 +74,14 @@ body.viz-root > header nav span.font-semibold { color: #fff; }
 select { background: var(--surface-1); border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; font-size: 13px; }
 .muted { color: var(--text-secondary); }
 /* Onglets */
-.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--grid); overflow-x: auto; }
-.tab { padding: 8px 14px; font-size: 14px; color: var(--text-secondary); border-bottom: 2px solid transparent; white-space: nowrap; }
-.tab:hover { color: var(--text-primary); }
-.tab[aria-selected="true"] { color: var(--text-primary); border-bottom-color: var(--accent); font-weight: 600; }
+/* Onglets : une barre bien visible, qui reste collée en haut de l'écran pendant le défilement */
+.tabs { display: flex; gap: 4px; padding: 5px; overflow-x: auto; scrollbar-width: thin; position: sticky; top: 8px; z-index: 50;
+  background: color-mix(in srgb, var(--code-bg) 88%, transparent); backdrop-filter: blur(8px);
+  border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--ombre); }
+.tab { padding: 8px 16px; font-size: 14.5px; font-weight: 500; color: var(--text-secondary); border-radius: 8px;
+  white-space: nowrap; transition: background .15s, color .15s; }
+.tab:hover { color: var(--text-primary); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.tab[aria-selected="true"] { color: #fff; background: var(--accent-fill); font-weight: 600; box-shadow: 0 2px 8px rgba(109,40,217,.3); }
 /* Onglet données */
 .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; }
 .flow-step { flex: 1 1 150px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 12px; }

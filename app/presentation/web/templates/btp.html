@@ -1,14 +1,13 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8"><link rel="icon" type="image/svg+xml" href="/static/favicon.svg"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BTP à La Réunion — commande publique de travaux et construction, en données</title>
   <meta name="description" content="Qui commande des travaux à La Réunion, qui les remporte, avec combien de concurrents, et combien de logements sont autorisés. Données ouvertes DECP, SIRENE et Sitadel analysées en SQL.">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
   <link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github.min.css">
   <link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css">
-  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
   <link rel="stylesheet" href="/static/theme.css?v={{ v }}">
   <style>
     .lecture { border-left: 3px solid var(--s1); padding: 4px 0 4px 12px; font-size: 14px; }
@@ -19,6 +18,7 @@
     .scroll-x { overflow-x: auto; }
     .sql-box, .tbl-box { margin-top: 8px; }
   </style>
+  <link rel="stylesheet" href="/static/tailwind.css?v={{ v }}"><!-- après les styles de la page, comme le faisait le script Tailwind -->
 </head>
 <body class="viz-root">
 <header class="bg-slate-900 text-white px-4 sm:px-6 py-4">
@@ -254,6 +254,6 @@
   <script type="application/json" id="page-data">{{ page|tojson }}</script>
 {% endif %}
 </main>
-<script src="/static/btp.js?v={{ v }}"></script>
+<script defer src="/static/btp.js?v={{ v }}"></script>
 </body>
 </html>
