@@ -22,6 +22,12 @@ ssh -t $hote "sudo docker load -i /tmp/image.tar && cd /srv/portfolio && sudo do
 if ($LASTEXITCODE) { throw "le déploiement sur le serveur a échoué" }
 
 Write-Host "4/4 Vérification"
-Start-Sleep -Seconds 15
+# Le serveur calcule ses pages avant d'accepter des visiteurs : on attend qu'il réponde (2 min au plus)
+$pret = $false
+for ($i = 0; $i -lt 40 -and -not $pret; $i++) {
+  Start-Sleep -Seconds 3
+  try { $pret = (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 https://axelclaude.fr/sante).StatusCode -eq 200 } catch { }
+}
+if (-not $pret) { throw "le site ne répond pas après 2 minutes" }
 (Invoke-WebRequest -UseBasicParsing https://axelclaude.fr/btp).StatusCode
 Remove-Item -Recurse -Force $tmp

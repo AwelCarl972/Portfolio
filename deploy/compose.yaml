@@ -43,7 +43,7 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 15s
+      start_period: 90s  # les données open data et les pages se calculent au démarrage (~20 s)
 
 networks:
   # Créé par la pile LTE : elle doit tourner avant celle-ci.
