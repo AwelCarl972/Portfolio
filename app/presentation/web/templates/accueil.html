@@ -9,16 +9,17 @@
   <style>
     .hero h2 { font-size: 28px; font-weight: 700; line-height: 1.2; }
     .projet { display: flex; flex-direction: column; gap: 6px; transition: border-color .15s; }
-    .projet:hover { border-color: var(--s1); }
-    .projet .chiffre { font-size: 24px; font-weight: 700; color: var(--s1); line-height: 1.1; }
-    .projet .lien { margin-top: auto; font-size: 13px; color: var(--s1); }
+    .projet:hover { border-color: var(--accent); }
+    .projet .chiffre { font-size: 24px; font-weight: 700; color: var(--accent); line-height: 1.1;
+                      background: linear-gradient(90deg, var(--s1), var(--accent)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; width: fit-content; }
+    .projet .lien { margin-top: auto; font-size: 13px; color: var(--accent); }
     /* Deux vrais boutons (les CV), puis de simples liens : un rang de boutons identiques se lit comme un sélecteur */
     .btn, .btn-ghost { display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; padding: 7px 16px; font-size: 14px; font-weight: 500;
-                       border: 1px solid var(--s1); transition: background .15s; }
-    .btn { background: var(--s1); color: #fff; } .btn:hover { filter: brightness(1.1); }
-    .btn-ghost { color: var(--s1); } .btn-ghost:hover { background: color-mix(in srgb, var(--s1) 12%, transparent); }
+                       border: 1px solid var(--accent-fill); transition: background .15s; }
+    .btn { background: var(--accent-fill); color: #fff; } .btn:hover { filter: brightness(1.1); }
+    .btn-ghost { color: var(--accent); } .btn-ghost:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
     .btn:focus, .btn-ghost:focus, .lien-contact:focus { outline: none; }
-    .btn:focus-visible, .btn-ghost:focus-visible, .lien-contact:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
+    .btn:focus-visible, .btn-ghost:focus-visible, .lien-contact:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .lien-contact { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-secondary); }
     .lien-contact:hover { color: var(--text-primary); text-decoration: underline; }
     .lien-contact svg { width: 16px; height: 16px; }

@@ -1,39 +1,63 @@
-/* Thème commun (Observatoire, Projets) : jetons clair / sombre et composants de carte. */
+/* Thème commun : la palette du CV (encre ardoise, bleu nuit, cyan, violet, émeraude), en clair et en sombre.
+   Les quatre couleurs de séries sont passées au validateur de palette (daltonismes, contraste) sur chaque fond. */
 .viz-root {
   color-scheme: light;
-  --surface-1: #fcfcfb; --page: #f9f9f7;
-  --text-primary: #0b0b0b; --text-secondary: #52514e; --muted: #898781;
-  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
-  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
-  --o1: #86b6ef; --o2: #2a78d6; --o3: #104281;
-  --seq-lo: #cde2fb; --seq-hi: #0d366b;
-  --div-neg: #2a78d6; --div-mid: #f0efec; --div-pos: #e34948;
-  --code-bg: #f3f2ee;
-  --b1: #86b6ef; --b2: #5598e7; --b3: #2a78d6; --b4: #1c5cab; --b5: #104281;  /* ordinal validé (pluie) */
+  --surface-1: #ffffff; --page: #f6f8fb;
+  --text-primary: #0f172a; --text-secondary: #475569; --muted: #64748b;
+  --grid: #e2e8f0; --axis: #cbd5e1; --border: rgba(15,23,42,0.10);
+  --s1: #0891b2; --s2: #ea580c; --s3: #059669; --s4: #d97706;
+  --o1: #7dd3e6; --o2: #0891b2; --o3: #0c4a5e;
+  --seq-lo: #d5f4fa; --seq-hi: #083344;
+  --div-neg: #0891b2; --div-mid: #eef2f6; --div-pos: #dc2626;
+  --code-bg: #f1f5f9;
+  --b1: #8fd8e8; --b2: #3fb4d1; --b3: #0891b2; --b4: #0e6683; --b5: #0c4a5e;  /* ordinal (pluie) : plus foncé = plus */
+  --accent: #6d28d9; --accent-fill: #6d28d9; --c1: #06b6d4; --c2: #8b5cf6;   /* interface : liens, boutons, onglets */
+  --ombre: 0 1px 2px rgba(15,23,42,.04), 0 4px 14px rgba(15,23,42,.05);
 }
 @media (prefers-color-scheme: dark) {
   .viz-root {
     color-scheme: dark;
-    --surface-1: #1a1a19; --page: #0d0d0d;
-    --text-primary: #f0efec; --text-secondary: #c3c2b7; --muted: #898781;
-    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
-    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
-    --o1: #184f95; --o2: #3987e5; --o3: #9ec5f4;
-    --seq-lo: #1a2a40; --seq-hi: #9ec5f4;
-    --div-neg: #3987e5; --div-mid: #383835; --div-pos: #e66767;
-    --code-bg: #111110;
-    --b1: #184f95; --b2: #256abf; --b3: #3987e5; --b4: #6da7ec; --b5: #9ec5f4;  /* sombre : plus de pluie = plus clair */
+    --surface-1: #111a2e; --page: #0b1120;
+    --text-primary: #f1f5f9; --text-secondary: #cbd5e1; --muted: #8b98ad;
+    --grid: #1e293b; --axis: #334155; --border: rgba(148,163,184,0.16);
+    --s1: #0b9fc0; --s2: #e2602a; --s3: #14a374; --s4: #c98500;
+    --o1: #134e5e; --o2: #0b9fc0; --o3: #a5f3fc;
+    --seq-lo: #164e63; --seq-hi: #a5f3fc;
+    --div-neg: #0b9fc0; --div-mid: #334155; --div-pos: #ef5350;
+    --code-bg: #0b1120;
+    --b1: #134e5e; --b2: #0e7490; --b3: #0b9fc0; --b4: #5ccde3; --b5: #a5f3fc;  /* sombre : plus de pluie = plus clair */
+    --accent: #a78bfa; --accent-fill: #7c3aed; --c1: #22d3ee; --c2: #a78bfa;
+    --ombre: 0 1px 2px rgba(0,0,0,.3);
   }
 }
 [hidden] { display: none !important; }  /* sinon .grid (Tailwind) l'emporte sur l'attribut hidden */
-body { background: var(--page); color: var(--text-primary); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
-.card, .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; }
+body { background: var(--page); color: var(--text-primary); font-family: Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+       -webkit-font-smoothing: antialiased; }
+a { text-underline-offset: 3px; }
+/* En-tête : le bleu nuit quadrillé de la colonne du CV, filet cyan → violet en bas */
+body.viz-root > header { position: relative; color: #e2e8f0;
+  background: linear-gradient(rgba(148,163,184,.07) 1px, transparent 1px) 0 0 / 22px 22px,
+              linear-gradient(90deg, rgba(148,163,184,.07) 1px, transparent 1px) 0 0 / 22px 22px,
+              radial-gradient(120% 140% at 0% 0%, #1e1b4b 0%, transparent 60%),
+              radial-gradient(90% 120% at 100% 100%, #083344 0%, transparent 60%), #0b1120; }
+body.viz-root > header::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: linear-gradient(90deg, var(--c1), var(--c2), transparent); }
+body.viz-root > header h1 { letter-spacing: -.01em; }
+body.viz-root > header h1 span { color: #c4b5fd; }
+body.viz-root > header p { color: #94a3b8; }
+body.viz-root > header nav a { color: #67e8f9; text-decoration: none; }
+body.viz-root > header nav a:hover { color: #fff; text-decoration: underline; }
+body.viz-root > header nav span.font-semibold { color: #fff; }
+.card, .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--ombre); }
+.tile { position: relative; overflow: hidden; }
+.tile::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(var(--c1), var(--c2)); }
 .card { padding: 14px 16px; position: relative; min-width: 0; }  /* min-width : la grille peut rétrécir au redimensionnement */
 .card h3 { font-weight: 600; font-size: 15px; padding-right: 130px; }
 .sub { color: var(--text-secondary); font-size: 12px; margin-bottom: 6px; }
 .chart { height: 300px; } .chart-tall { height: 380px; }
 .tile { padding: 12px 14px; }
 .tile-label { color: var(--text-secondary); font-size: 12px; }
+.tile-value { letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
 .tile-value { font-size: 26px; font-weight: 600; margin: 2px 0; }
 .tile-sub { font-size: 12px; }
 .card-actions { position: absolute; top: 12px; right: 14px; display: flex; gap: 6px; }
@@ -43,7 +67,8 @@ body { background: var(--page); color: var(--text-primary); font-family: system-
 .tbl table { width: 100%; } .tbl th { text-align: left; position: sticky; top: 0; background: var(--surface-1); }
 .tbl td, .tbl th { padding: 2px 6px; border-bottom: 1px solid var(--grid); }
 .chip { border: 1px solid var(--border); border-radius: 999px; padding: 3px 12px; font-size: 13px; }
-.chip[aria-pressed="true"] { background: var(--text-primary); color: var(--surface-1); }
+.chip:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"] { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
 .badge { display: inline-block; font-size: 11px; border: 1px solid var(--border); border-radius: 999px; padding: 0 7px; margin-left: 4px; color: var(--text-secondary); }
 #panel.htmx-request { opacity: .5; transition: opacity .2s; }
 select { background: var(--surface-1); border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; font-size: 13px; }
@@ -52,18 +77,19 @@ select { background: var(--surface-1); border: 1px solid var(--border); border-r
 .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--grid); overflow-x: auto; }
 .tab { padding: 8px 14px; font-size: 14px; color: var(--text-secondary); border-bottom: 2px solid transparent; white-space: nowrap; }
 .tab:hover { color: var(--text-primary); }
-.tab[aria-selected="true"] { color: var(--text-primary); border-bottom-color: var(--s1); font-weight: 600; }
+.tab[aria-selected="true"] { color: var(--text-primary); border-bottom-color: var(--accent); font-weight: 600; }
 /* Onglet données */
 .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; }
 .flow-step { flex: 1 1 150px; background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 12px; }
 .flow-step b { display: block; font-size: 13px; margin-bottom: 2px; color: var(--text-primary); }
 .flow-arrow { align-self: center; color: var(--muted); }
+pre.code, code.inline, .badge { font-family: "JetBrains Mono", "Cascadia Code", Consolas, ui-monospace, monospace; }
 pre.code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; font-size: 12px; line-height: 1.45; }
 pre.code code.hljs { background: transparent; padding: 10px 12px; }
 details.sql { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; }
 details.sql summary { cursor: pointer; font-size: 14px; }
 details.sql[open] summary { margin-bottom: 6px; }
-details.sql:target, details.sql.flash { outline: 2px solid var(--s1); }
+details.sql:target, details.sql.flash { outline: 2px solid var(--accent); }
 .rust-badge { border-color: #ce422b; color: #ce422b; }
 .rust-step { border-color: #ce422b88; }
 code.inline { font-size: 12px; background: var(--code-bg); border-radius: 4px; padding: 0 4px; }
@@ -76,3 +102,9 @@ code.inline { font-size: 12px; background: var(--code-bg); border-radius: 4px; p
   .tile-value { font-size: 22px; }
   .chart-tall { height: 340px; }
 }
+
+/* Titres de section : la règle dégradée des titres du CV */
+main h2.text-lg { display: flex; align-items: center; gap: 10px; }
+main h2.text-lg::after { content: ""; flex: 1; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--c1), var(--c2), transparent); opacity: .7; }
+/* Encadrés « lecture » : filet dégradé plutôt qu'une couleur de série */
+.lecture { border-left: 3px solid; border-image: linear-gradient(var(--c1), var(--c2)) 1; }
