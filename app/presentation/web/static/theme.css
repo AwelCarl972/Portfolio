@@ -108,3 +108,36 @@ main h2.text-lg { display: flex; align-items: center; gap: 10px; }
 main h2.text-lg::after { content: ""; flex: 1; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--c1), var(--c2), transparent); opacity: .7; }
 /* Encadrés « lecture » : filet dégradé plutôt qu'une couleur de série */
 .lecture { border-left: 3px solid; border-image: linear-gradient(var(--c1), var(--c2)) 1; }
+
+/* Une touche de vert phosphore, en souvenir des vieux terminaux : seulement sur fond sombre (en-tête, code en mode
+   sombre), jamais dans les graphiques où le vert a déjà un sens (renouvelable, « à La Réunion »). */
+.viz-root { --phosphore: #33ff66; --phosphore-texte: #15803d; }
+@media (prefers-color-scheme: dark) { .viz-root { --phosphore-texte: #33ff66; } }
+body.viz-root > header h1::before { content: "❯ "; font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  font-weight: 500; color: var(--phosphore); }
+body.viz-root > header h1 > span.font-normal::after { content: "▌"; margin-left: 4px; font-weight: 400; color: var(--phosphore);
+  text-shadow: 0 0 6px rgba(51,255,102,.55); animation: curseur 1.1s steps(1) infinite; }
+@keyframes curseur { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { body.viz-root > header h1 > span.font-normal::after { animation: none; } }
+.dispo-point { display: inline-flex; align-items: center; gap: 6px; margin-left: 10px; vertical-align: middle;
+  font: 500 12px "JetBrains Mono", "Cascadia Code", Consolas, monospace; color: var(--phosphore); }
+.dispo-point::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--phosphore);
+  box-shadow: 0 0 6px var(--phosphore); }
+main h2.text-lg::before { content: "//"; font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  font-size: .85em; color: var(--phosphore-texte); }
+pre.code .hljs-comment { color: var(--phosphore-texte); font-style: normal; }
+
+/* Contact en un clic depuis n'importe quelle page : bouton flottant en bas à droite, qui suit le défilement */
+.contact-entete { position: fixed; right: 20px; bottom: 20px; z-index: 1000; display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 18px; border-radius: 999px; font-size: 14px; font-weight: 600; color: #fff; background: #7c3aed;
+  border: 1px solid rgba(196,181,253,.5); box-shadow: 0 8px 24px rgba(76,29,149,.35), 0 2px 6px rgba(15,23,42,.2);
+  transition: transform .15s, filter .15s; }
+.contact-entete:hover { filter: brightness(1.12); transform: translateY(-2px); }
+.contact-entete:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 3px; }
+.contact-entete svg { width: 18px; height: 18px; }
+/* Téléphone : une simple pastille ronde avec l'enveloppe, pour ne pas masquer le contenu */
+@media (max-width: 640px) {
+  .contact-entete { right: 14px; bottom: 14px; padding: 13px; font-size: 0; gap: 0; }
+  .contact-entete svg { width: 22px; height: 22px; }
+}
+@media (prefers-reduced-motion: reduce) { .contact-entete:hover { transform: none; } }
